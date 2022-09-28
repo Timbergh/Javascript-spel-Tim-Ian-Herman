@@ -21,6 +21,10 @@ io.on("connection", (socket) => {
   socket.on("playerData", (data) => {
     console.log(data);
   });
+
+  socket.on("moveLeft", (data) => {
+    io.emit("moveLeft", data);
+  });
 });
 
 server.listen(3000, () => {

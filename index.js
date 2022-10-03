@@ -20,10 +20,11 @@ io.on("connection", (socket) => {
 
   socket.on("playerData", (data) => {
     console.log(data);
+    io.emit("playerData", data);
   });
 
-  socket.on("moveLeft", (data) => {
-    io.emit("moveLeft", data);
+  socket.on("playerMovement", (data) => {
+    io.emit("OnlinePlayerPos", data);
   });
 });
 

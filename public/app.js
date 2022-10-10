@@ -1,5 +1,4 @@
 let socket = io();
-
 window.focus;
 let myCanvas = document.getElementById("myCanvas");
 let c = myCanvas.getContext("2d");
@@ -51,6 +50,8 @@ class OnlinePlayer {
 
   update() {
     this.render();
+    console.log("dx = ", this.velocity.x);
+    console.log("dy = ", this.velocity.y);
     this.position.x += this.velocity.x;
     this.position.y += this.velocity.y;
   }
@@ -73,39 +74,21 @@ const player = new Player({
     y: 70,
   },
 });
-let online_player = new OnlinePlayer({
-  name: "userName",
-  color: "red",
-  position: {
-    x: 0,
-    y: 0,
-  },
-  velocity: {
-    x: 0,
-    y: 0,
-  },
-  size: {
-    x: 50,
-    y: 70,
-  },
+let socketid;
+socket.on("socketId", (data) => {
+  socketid = data;
 });
-
+let online_player;
 socket.emit("playerData", player);
 socket.on("playerData", (data) => {
-  (online_player.name = data.name),
-    (online_player.color = data.color),
-    (online_player.position = {
-      x: data.position.x,
-      y: data.position.y,
-    }),
-    (online_player.velocity = {
-      x: data.velocity.x,
-      y: data.velocity.y,
-    }),
-    (online_player.size = {
-      x: data.size.x,
-      y: data.size.y,
-    });
+  online_player = new OnlinePlayer(
+    data.name,
+    data.position,
+    data.velocity,
+    data.color,
+    data.size
+  );
+  players_connected.append(online_player);
 });
 
 document.addEventListener("keydown", (e) => {
@@ -126,19 +109,30 @@ document.addEventListener("keydown", (e) => {
       break;
   }
 });
-
 socket.on("OnlinePlayerPos", (data) => {
-  online_player.velocity.x = data.x;
-  online_player.velocity.y = data.y;
+  console.log(data);
+  console.log(online_player);
+  console.log(players_connected);
+  online_player.velocity.x = data.velocity.x;
+  online_player.velocity.y = data.velocity.y;
+  online_player.update();
 });
+let players_connected;
+socket.emit("loadPlayers", socketid);
+socket.on("playerList", (data) => {
+  players_connected = data;
+  console.log("done");
+});
+function load() {
+  for (let index = 0; index < players_connected.length; index++) {}
+}
 function animate() {
   requestAnimationFrame(animate);
   c.clearRect(0, 0, innerWidth, innerHeight);
   player.update();
-  if (online_player.velocity.x != 0 || online_player.velocity.y != 0) {
-    socket.emit("playerMovement", player.position);
+  if (player.velocity.x != 0 || player.velocity.y != 0) {
+    socket.emit("playerMovement", player.velocity);
   }
-  online_player.update();
 }
 
 animate();

@@ -10,21 +10,25 @@ app.use(express.static("public"));
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/index.html");
 });
-
+players_connected = [];
 io.on("connection", (socket) => {
   console.log("a user connected");
+  io.to(socket.id).emit("socketId", socket.id);
 
   socket.on("disconnect", () => {
     console.log("user disconnected");
   });
-
   socket.on("playerData", (data) => {
-    console.log(data);
-    io.emit("playerData", data);
+    players_connected.append(data);
+    socket.broadcast.emit("playerData", data);
   });
 
   socket.on("playerMovement", (data) => {
-    io.emit("OnlinePlayerPos", data);
+    socket.broadcast.emit("OnlinePlayerPos", data);
+  });
+
+  socket.on("loadPlayers", (data) => {
+    io.to(data).emit("playerList", players_connected);
   });
 });
 

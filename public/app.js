@@ -74,11 +74,15 @@ const player = new Player({
     y: 70,
   },
 });
+
 let socketid;
+
 socket.on("socketId", (data) => {
   socketid = data;
 });
+
 let online_player;
+
 socket.emit("playerData", player);
 socket.on("playerData", (data) => {
   online_player = new OnlinePlayer(
@@ -88,16 +92,20 @@ socket.on("playerData", (data) => {
     data.color,
     data.size
   );
-  players_connected.append(online_player);
 });
+
+let aPressed = false;
+let dPressed = false;
 
 document.addEventListener("keydown", (e) => {
   switch (e.key) {
     case "a":
       player.velocity.x = -5;
+      aPressed = true;
       break;
     case "d":
       player.velocity.x = 5;
+      dPressed = true;
       break;
     case " ":
       if (
@@ -109,6 +117,26 @@ document.addEventListener("keydown", (e) => {
       break;
   }
 });
+
+document.addEventListener("keyup", (e) => {
+  switch (e.key) {
+    case "a":
+      if (dPressed) {
+        player.velocity.x = 5;
+      } else player.velocity.x = 0;
+      aPressed = false;
+      break;
+    case "d":
+      if (aPressed) {
+        player.velocity.x = -5;
+      } else player.velocity.x = 0;
+      dPressed = false;
+      break;
+  }
+});
+
+let players_connected;
+
 socket.on("OnlinePlayerPos", (data) => {
   console.log(data);
   console.log(online_player);
@@ -117,15 +145,17 @@ socket.on("OnlinePlayerPos", (data) => {
   online_player.velocity.y = data.velocity.y;
   online_player.update();
 });
-let players_connected;
+
 socket.emit("loadPlayers", socketid);
 socket.on("playerList", (data) => {
   players_connected = data;
   console.log("done");
 });
+
 function load() {
   for (let index = 0; index < players_connected.length; index++) {}
 }
+
 function animate() {
   requestAnimationFrame(animate);
   c.clearRect(0, 0, innerWidth, innerHeight);

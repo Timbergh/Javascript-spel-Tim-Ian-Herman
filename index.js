@@ -18,8 +18,9 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("user disconnected");
   });
+
   socket.on("playerData", (data) => {
-    players_connected.append(data);
+    players_connected.push(data);
     socket.broadcast.emit("playerData", data);
   });
 
@@ -28,7 +29,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("loadPlayers", (data) => {
-    io.to(data).emit("playerList", players_connected);
+    socket.emit("playerList", players_connected);
   });
 });
 

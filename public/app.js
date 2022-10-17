@@ -75,12 +75,6 @@ const player = new Player({
   },
 });
 
-let socketid;
-
-socket.on("socketId", (data) => {
-  socketid = data;
-});
-
 let online_player;
 
 socket.emit("playerData", player);
@@ -145,24 +139,46 @@ socket.on("OnlinePlayerPos", (data) => {
   online_player.velocity.y = data.velocity.y;
   online_player.update();
 });
-
-socket.emit("loadPlayers", socketid);
-socket.on("playerList", (data) => {
-  players_connected = data;
-  console.log("done");
-});
+let players = [];
 
 function load() {
-  for (let index = 0; index < players_connected.length; index++) {}
+  for (let index = 0; index < players_connected.length; index++) {
+    console.log("inne");
+    players.push(
+      (online_player = new OnlinePlayer(
+        players_connected[index].name,
+        players_connected[index].position,
+        players_connected[index].velocity,
+        players_connected[index].color,
+        players_connected[index].size
+      ))
+    );
+  }
+  console.log("ute");
 }
 
 function animate() {
   requestAnimationFrame(animate);
   c.clearRect(0, 0, innerWidth, innerHeight);
   player.update();
+  for (let i = 0; i < players.length; i++) {
+    players[i].update;
+  }
   if (player.velocity.x != 0 || player.velocity.y != 0) {
     socket.emit("playerMovement", player.velocity);
   }
+  console.log(players);
 }
+socket.emit("loadPlayers");
 
-animate();
+socket.on("playerList", (data) => {
+  console.log("hej");
+  players_connected = data;
+  for (let i = 0; i < players_connected.length; i++) {
+    if ((players_connected[i][0].name = userName)) {
+      players_connected.pop(players_connected[i]);
+    }
+  }
+  load();
+  animate();
+});

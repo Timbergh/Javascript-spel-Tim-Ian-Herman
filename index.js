@@ -13,14 +13,19 @@ app.get("/", (req, res) => {
 players_connected = [];
 io.on("connection", (socket) => {
   console.log("a user connected");
-  io.to(socket.id).emit("socketId", socket.id);
+  console.log(players_connected);
 
   socket.on("disconnect", () => {
     console.log("user disconnected");
+    for (let i = 0; i < players_connected.length; i++) {
+      if (players_connected[i][1] == socket.id) {
+        players_connected.pop(players_connected[i]);
+      }
+    }
   });
 
   socket.on("playerData", (data) => {
-    players_connected.push(data);
+    players_connected.push([data, socket.id]);
     socket.broadcast.emit("playerData", data);
   });
 
@@ -28,7 +33,7 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("OnlinePlayerPos", data);
   });
 
-  socket.on("loadPlayers", (data) => {
+  socket.on("loadPlayers", () => {
     socket.emit("playerList", players_connected);
   });
 });

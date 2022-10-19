@@ -35,7 +35,7 @@ class Player {
 }
 
 class OnlinePlayer {
-  constructor({ name, position, velocity, color, size }) {
+  constructor(name, position, velocity, color, size) {
     this.name = name;
     this.position = position;
     this.velocity = velocity;
@@ -50,8 +50,6 @@ class OnlinePlayer {
 
   update() {
     this.render();
-    console.log("dx = ", this.velocity.x);
-    console.log("dy = ", this.velocity.y);
     this.position.x += this.velocity.x;
     this.position.y += this.velocity.y;
   }
@@ -78,15 +76,15 @@ const player = new Player({
 let online_player;
 
 socket.emit("playerData", player);
-socket.on("playerData", (data) => {
-  online_player = new OnlinePlayer(
-    data.name,
-    data.position,
-    data.velocity,
-    data.color,
-    data.size
-  );
-});
+// socket.on("playerData", (data) => {
+//   online_player = new OnlinePlayer(
+//     data.name,
+//     data.position,
+//     data.velocity,
+//     data.color,
+//     data.size
+//   );
+// });
 
 let aPressed = false;
 let dPressed = false;
@@ -130,29 +128,31 @@ document.addEventListener("keyup", (e) => {
 });
 
 let players_connected;
+let players = [];
 
 socket.on("OnlinePlayerPos", (data) => {
-  console.log(data);
-  console.log(online_player);
-  console.log(players_connected);
+  for (let i = 0; i < players.length; i++) {
+    players[i].velocity.x = data.velocity.x;
+    players[i].velocity.y = data.velocity.y;
+  }
   online_player.velocity.x = data.velocity.x;
   online_player.velocity.y = data.velocity.y;
-  online_player.update();
 });
-let players = [];
 
 function load() {
   for (let index = 0; index < players_connected.length; index++) {
     console.log("inne");
+    console.log(players_connected);
     players.push(
-      (online_player = new OnlinePlayer(
-        players_connected[index].name,
-        players_connected[index].position,
-        players_connected[index].velocity,
-        players_connected[index].color,
-        players_connected[index].size
-      ))
+      new OnlinePlayer(
+        players_connected[index][0].name,
+        players_connected[index][0].position,
+        players_connected[index][0].velocity,
+        (players_connected[index][0].color = "purple"),
+        players_connected[index][0].size
+      )
     );
+    console.log(players);
   }
   console.log("ute");
 }
@@ -162,23 +162,16 @@ function animate() {
   c.clearRect(0, 0, innerWidth, innerHeight);
   player.update();
   for (let i = 0; i < players.length; i++) {
-    players[i].update;
+    players[i].update();
   }
   if (player.velocity.x != 0 || player.velocity.y != 0) {
     socket.emit("playerMovement", player.velocity);
   }
-  console.log(players);
 }
-socket.emit("loadPlayers");
 
+socket.emit("loadPlayers");
 socket.on("playerList", (data) => {
-  console.log("hej");
   players_connected = data;
-  for (let i = 0; i < players_connected.length; i++) {
-    if ((players_connected[i][0].name = userName)) {
-      players_connected.pop(players_connected[i]);
-    }
-  }
   load();
   animate();
 });

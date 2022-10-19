@@ -52,6 +52,12 @@ class OnlinePlayer {
     this.render();
     this.position.x += this.velocity.x;
     this.position.y += this.velocity.y;
+
+    if (this.position.y + this.size.y + this.velocity.y > myCanvas.height) {
+      this.velocity.y = 0;
+    } else {
+      this.velocity.y += gravity;
+    }
   }
 }
 
@@ -76,15 +82,6 @@ const player = new Player({
 let online_player;
 
 socket.emit("playerData", player);
-// socket.on("playerData", (data) => {
-//   online_player = new OnlinePlayer(
-//     data.name,
-//     data.position,
-//     data.velocity,
-//     data.color,
-//     data.size
-//   );
-// });
 
 let aPressed = false;
 let dPressed = false;
@@ -93,10 +90,12 @@ document.addEventListener("keydown", (e) => {
   switch (e.key) {
     case "a":
       player.velocity.x = -5;
+      socket.emit("playerMovement", player.velocity);
       aPressed = true;
       break;
     case "d":
       player.velocity.x = 5;
+      socket.emit("playerMovement", player.velocity);
       dPressed = true;
       break;
     case " ":
@@ -105,6 +104,7 @@ document.addEventListener("keydown", (e) => {
         myCanvas.height
       ) {
         player.velocity.y = -20;
+        socket.emit("playerMovement", player.velocity);
       }
       break;
   }
@@ -115,13 +115,21 @@ document.addEventListener("keyup", (e) => {
     case "a":
       if (dPressed) {
         player.velocity.x = 5;
-      } else player.velocity.x = 0;
+        socket.emit("playerMovement", player.velocity);
+      } else {
+        player.velocity.x = 0;
+        socket.emit("playerMovement", player.velocity);
+      }
       aPressed = false;
       break;
     case "d":
       if (aPressed) {
         player.velocity.x = -5;
-      } else player.velocity.x = 0;
+        socket.emit("playerMovement", player.velocity);
+      } else {
+        player.velocity.x = 0;
+        socket.emit("playerMovement", player.velocity);
+      }
       dPressed = false;
       break;
   }
@@ -132,16 +140,13 @@ let players = [];
 
 socket.on("OnlinePlayerPos", (data) => {
   for (let i = 0; i < players.length; i++) {
-    players[i].velocity.x = data.velocity.x;
-    players[i].velocity.y = data.velocity.y;
+    players[i].velocity.x = data.x;
+    players[i].velocity.y = data.y;
   }
-  online_player.velocity.x = data.velocity.x;
-  online_player.velocity.y = data.velocity.y;
 });
 
 function load() {
   for (let index = 0; index < players_connected.length; index++) {
-    console.log("inne");
     console.log(players_connected);
     players.push(
       new OnlinePlayer(
@@ -152,9 +157,8 @@ function load() {
         players_connected[index][0].size
       )
     );
-    console.log(players);
   }
-  console.log("ute");
+  console.log(players);
 }
 
 function animate() {
@@ -163,9 +167,6 @@ function animate() {
   player.update();
   for (let i = 0; i < players.length; i++) {
     players[i].update();
-  }
-  if (player.velocity.x != 0 || player.velocity.y != 0) {
-    socket.emit("playerMovement", player.velocity);
   }
 }
 

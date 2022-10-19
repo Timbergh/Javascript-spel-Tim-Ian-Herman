@@ -26,7 +26,6 @@ io.on("connection", (socket) => {
 
   socket.on("playerData", (data) => {
     players_connected.push([data, socket.id]);
-    socket.broadcast.emit("playerData", data);
   });
 
   socket.on("playerMovement", (data) => {

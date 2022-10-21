@@ -22,6 +22,7 @@ io.on("connection", (socket) => {
         players_connected.pop(players_connected[i]);
       }
     }
+    socket.broadcast.emit("disconnected");
   });
 
   socket.on("playerData", (data) => {
@@ -33,7 +34,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("loadPlayers", () => {
-    socket.emit("playerList", players_connected);
+    io.emit("playerList", players_connected);
   });
 });
 

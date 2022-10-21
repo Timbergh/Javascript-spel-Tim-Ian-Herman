@@ -148,15 +148,17 @@ socket.on("OnlinePlayerPos", (data) => {
 function load() {
   for (let index = 0; index < players_connected.length; index++) {
     console.log(players_connected);
-    players.push(
-      new OnlinePlayer(
-        players_connected[index][0].name,
-        players_connected[index][0].position,
-        players_connected[index][0].velocity,
-        (players_connected[index][0].color = "purple"),
-        players_connected[index][0].size
-      )
-    );
+    if (players_connected[index][0].name != userName) {
+      players.push(
+        new OnlinePlayer(
+          players_connected[index][0].name,
+          players_connected[index][0].position,
+          players_connected[index][0].velocity,
+          (players_connected[index][0].color = "purple"),
+          players_connected[index][0].size
+        )
+      );
+    }
   }
   console.log(players);
 }
@@ -174,5 +176,14 @@ socket.emit("loadPlayers");
 socket.on("playerList", (data) => {
   players_connected = data;
   load();
-  animate();
 });
+
+socket.on("disconnected", () => {
+  for (let i = 0; i < players_connected.length; i++) {
+    if (players[i].name == userName) {
+      players.pop(players[i]);
+    }
+  }
+});
+
+animate();

@@ -13,28 +13,39 @@ app.get("/", (req, res) => {
 players_connected = [];
 io.on("connection", (socket) => {
   console.log("a user connected");
-  console.log(players_connected);
 
   socket.on("disconnect", () => {
     console.log("user disconnected");
     for (let i = 0; i < players_connected.length; i++) {
       if (players_connected[i][1] == socket.id) {
-        players_connected.pop(players_connected[i]);
+        socket.broadcast.emit("disconnected", players_connected[i][0]);
+        players_connected.splice(i, 1);
+        console.log("a");
       }
     }
-    socket.broadcast.emit("disconnected");
   });
 
   socket.on("playerData", (data) => {
     players_connected.push([data, socket.id]);
+    socket.broadcast.emit("playerJoined", data);
+    console.log(players_connected);
   });
 
   socket.on("playerMovement", (data) => {
     socket.broadcast.emit("OnlinePlayerPos", data);
+    for (let i = 0; i < players_connected.length; i++) {
+      if (data.name == players_connected[i][0].name) {
+        players_connected[i][0].position = data.position;
+      }
+    }
+  });
+
+  socket.on("updatePosition", (data) => {
+    socket.broadcast.emit("PlayerPosUpdate", data);
   });
 
   socket.on("loadPlayers", () => {
-    io.emit("playerList", players_connected);
+    socket.emit("playerList", players_connected);
   });
 });
 

@@ -79,8 +79,6 @@ const player = new Player({
   },
 });
 
-let online_player;
-
 socket.emit("playerData", player);
 
 let aPressed = false;
@@ -90,12 +88,12 @@ document.addEventListener("keydown", (e) => {
   switch (e.key) {
     case "a":
       player.velocity.x = -5;
-      socket.emit("playerMovement", player.velocity);
+      socket.emit("playerMovement", player);
       aPressed = true;
       break;
     case "d":
       player.velocity.x = 5;
-      socket.emit("playerMovement", player.velocity);
+      socket.emit("playerMovement", player);
       dPressed = true;
       break;
     case " ":
@@ -104,7 +102,7 @@ document.addEventListener("keydown", (e) => {
         myCanvas.height
       ) {
         player.velocity.y = -20;
-        socket.emit("playerMovement", player.velocity);
+        socket.emit("playerMovement", player);
       }
       break;
   }
@@ -115,20 +113,24 @@ document.addEventListener("keyup", (e) => {
     case "a":
       if (dPressed) {
         player.velocity.x = 5;
-        socket.emit("playerMovement", player.velocity);
+        socket.emit("playerMovement", player);
+        socket.emit("updatePosition", player);
       } else {
         player.velocity.x = 0;
-        socket.emit("playerMovement", player.velocity);
+        socket.emit("playerMovement", player);
+        socket.emit("updatePosition", player);
       }
       aPressed = false;
       break;
     case "d":
       if (aPressed) {
         player.velocity.x = -5;
-        socket.emit("playerMovement", player.velocity);
+        socket.emit("playerMovement", player);
+        socket.emit("updatePosition", player);
       } else {
         player.velocity.x = 0;
-        socket.emit("playerMovement", player.velocity);
+        socket.emit("playerMovement", player);
+        socket.emit("updatePosition", player);
       }
       dPressed = false;
       break;
@@ -140,27 +142,39 @@ let players = [];
 
 socket.on("OnlinePlayerPos", (data) => {
   for (let i = 0; i < players.length; i++) {
-    players[i].velocity.x = data.x;
-    players[i].velocity.y = data.y;
+    if (players[i].name == data.name) {
+      players[i].velocity.x = data.velocity.x;
+      players[i].velocity.y = data.velocity.y;
+      break;
+    }
+  }
+});
+socket.on("PlayerPosUpdate", (data) => {
+  for (let i = 0; i < players.length; i++) {
+    if (players[i].name == data.name) {
+      players[i].position.x = data.position.x;
+      players[i].position.y = data.position.y;
+      console.log(players[i].name, "position was updated");
+      break;
+    }
   }
 });
 
 function load() {
-  for (let index = 0; index < players_connected.length; index++) {
-    console.log(players_connected);
-    if (players_connected[index][0].name != userName) {
+  for (let i = 0; i < players_connected.length; i++) {
+    if (players_connected[i][0].name != userName) {
+      console.log(players_connected[i][0].position);
       players.push(
         new OnlinePlayer(
-          players_connected[index][0].name,
-          players_connected[index][0].position,
-          players_connected[index][0].velocity,
-          (players_connected[index][0].color = "purple"),
-          players_connected[index][0].size
+          players_connected[i][0].name,
+          players_connected[i][0].position,
+          players_connected[i][0].velocity,
+          (players_connected[i][0].color = "purple"),
+          players_connected[i][0].size
         )
       );
     }
   }
-  console.log(players);
 }
 
 function animate() {
@@ -176,14 +190,25 @@ socket.emit("loadPlayers");
 socket.on("playerList", (data) => {
   players_connected = data;
   load();
+  animate();
 });
 
-socket.on("disconnected", () => {
-  for (let i = 0; i < players_connected.length; i++) {
-    if (players[i].name == userName) {
-      players.pop(players[i]);
+socket.on("playerJoined", (data) => {
+  players.push(
+    new OnlinePlayer(
+      data.name,
+      data.position,
+      data.velocity,
+      (data.color = "purple"),
+      data.size
+    )
+  );
+});
+
+socket.on("disconnected", (data) => {
+  for (let i = 0; i < players.length; i++) {
+    if (data.name == players[i].name) {
+      players.splice(i);
     }
   }
 });
-
-animate();

@@ -30,18 +30,20 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("playerJoined", data);
     console.log(players_connected);
   });
+  socket.on("playerMovementX", (data) => {
+    socket.broadcast.emit("OnlinePlayerPosX", data);
+  });
+  socket.on("playerMovementY", (data) => {
+    socket.broadcast.emit("OnlinePlayerPosY", data);
+  });
 
-  socket.on("playerMovement", (data) => {
-    socket.broadcast.emit("OnlinePlayerPos", data);
+  socket.on("updatePosition", (data) => {
+    socket.broadcast.emit("PlayerPosUpdate", data);
     for (let i = 0; i < players_connected.length; i++) {
       if (data.name == players_connected[i][0].name) {
         players_connected[i][0].position = data.position;
       }
     }
-  });
-
-  socket.on("updatePosition", (data) => {
-    socket.broadcast.emit("PlayerPosUpdate", data);
   });
 
   socket.on("loadPlayers", () => {

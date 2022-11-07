@@ -83,27 +83,34 @@ socket.emit("playerData", player);
 
 let aPressed = false;
 let dPressed = false;
+let upPressed = false;
 
 document.addEventListener("keydown", (e) => {
   switch (e.key) {
     case "a":
-      player.velocity.x = -5;
-      socket.emit("playerMovement", player);
-      aPressed = true;
+      if (!aPressed) {
+        player.velocity.x = -5;
+        socket.emit("playerMovementX", player);
+        aPressed = true;
+      }
       break;
     case "d":
-      player.velocity.x = 5;
-      socket.emit("playerMovement", player);
-      dPressed = true;
+      if (!dPressed) {
+        player.velocity.x = 5;
+        socket.emit("playerMovementX", player);
+        dPressed = true;
+      }
       break;
     case " ":
       if (
         player.position.y + player.size.y + player.velocity.y >
-        myCanvas.height
+          myCanvas.height &&
+        upPressed == false
       ) {
-        player.velocity.y = -20;
-        socket.emit("playerMovement", player);
+        player.velocity.y = -1;
+        upPressed = true;
       }
+      socket.emit("playerMovementY", player);
       break;
   }
 });
@@ -113,11 +120,11 @@ document.addEventListener("keyup", (e) => {
     case "a":
       if (dPressed) {
         player.velocity.x = 5;
-        socket.emit("playerMovement", player);
+        socket.emit("playerMovementX", player);
         socket.emit("updatePosition", player);
       } else {
         player.velocity.x = 0;
-        socket.emit("playerMovement", player);
+        socket.emit("playerMovementX", player);
         socket.emit("updatePosition", player);
       }
       aPressed = false;
@@ -125,14 +132,17 @@ document.addEventListener("keyup", (e) => {
     case "d":
       if (aPressed) {
         player.velocity.x = -5;
-        socket.emit("playerMovement", player);
+        socket.emit("playerMovementX", player);
         socket.emit("updatePosition", player);
       } else {
         player.velocity.x = 0;
-        socket.emit("playerMovement", player);
+        socket.emit("playerMovementX", player);
         socket.emit("updatePosition", player);
       }
       dPressed = false;
+      break;
+    case " ":
+      upPressed = false;
       break;
   }
 });
@@ -140,15 +150,23 @@ document.addEventListener("keyup", (e) => {
 let players_connected;
 let players = [];
 
-socket.on("OnlinePlayerPos", (data) => {
+socket.on("OnlinePlayerPosX", (data) => {
   for (let i = 0; i < players.length; i++) {
     if (players[i].name == data.name) {
       players[i].velocity.x = data.velocity.x;
+      break;
+    }
+  }
+});
+socket.on("OnlinePlayerPosY", (data) => {
+  for (let i = 0; i < players.length; i++) {
+    if (players[i].name == data.name) {
       players[i].velocity.y = data.velocity.y;
       break;
     }
   }
 });
+
 socket.on("PlayerPosUpdate", (data) => {
   for (let i = 0; i < players.length; i++) {
     if (players[i].name == data.name) {
@@ -176,14 +194,25 @@ function load() {
     }
   }
 }
+let x = 0;
 
 function animate() {
   requestAnimationFrame(animate);
   c.clearRect(0, 0, innerWidth, innerHeight);
+  if (x < 2.5 && upPressed) {
+    x += 0.2;
+    player.velocity.y -= 0.8 * (5 * x - 2 * x ** 2);
+    socket.emit("playerMovementY", player);
+  } else {
+    upPressed = false;
+    x = 0;
+    socket.emit("playerMovementY", player);
+  }
   player.update();
   for (let i = 0; i < players.length; i++) {
     players[i].update();
   }
+  console.log(player.velocity.y);
 }
 
 socket.emit("loadPlayers");

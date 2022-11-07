@@ -5,15 +5,14 @@ let c = myCanvas.getContext("2d");
 myCanvas.width = 960;
 myCanvas.height = 540;
 
-const gravity = 0.7;
-
 class Player {
-  constructor({ name, position, velocity, color, size }) {
+  constructor({ name, position, velocity, color, size, gravity }) {
     this.name = name;
     this.position = position;
     this.velocity = velocity;
     this.color = color;
     this.size = size;
+    this.gravity = gravity;
   }
 
   render() {
@@ -28,19 +27,24 @@ class Player {
 
     if (this.position.y + this.size.y + this.velocity.y > myCanvas.height) {
       this.velocity.y = 0;
+      this.gravity = 0.7;
     } else {
-      this.velocity.y += gravity;
+      this.velocity.y += this.gravity;
+    }
+    if (this.velocity.y >= -1 && this.velocity.y <= 1 && this.velocity.y != 0) {
+      this.gravity = 2.1;
     }
   }
 }
 
 class OnlinePlayer {
-  constructor(name, position, velocity, color, size) {
+  constructor(name, position, velocity, color, size, gravity) {
     this.name = name;
     this.position = position;
     this.velocity = velocity;
     this.color = color;
     this.size = size;
+    this.gravity = gravity;
   }
 
   render() {
@@ -55,8 +59,12 @@ class OnlinePlayer {
 
     if (this.position.y + this.size.y + this.velocity.y > myCanvas.height) {
       this.velocity.y = 0;
+      this.gravity = 0.7;
     } else {
-      this.velocity.y += gravity;
+      this.velocity.y += this.gravity;
+    }
+    if (this.velocity.y >= -1 && this.velocity.y <= 1 && this.velocity.y != 0) {
+      this.gravity = 2.1;
     }
   }
 }
@@ -77,6 +85,7 @@ const player = new Player({
     x: 50,
     y: 70,
   },
+  gravity: 0.7,
 });
 
 socket.emit("playerData", player);
@@ -102,15 +111,8 @@ document.addEventListener("keydown", (e) => {
       }
       break;
     case " ":
-      if (
-        player.position.y + player.size.y + player.velocity.y >
-          myCanvas.height &&
-        upPressed == false
-      ) {
-        player.velocity.y = -1;
-        upPressed = true;
-      }
-      socket.emit("playerMovementY", player);
+      upPressed = true;
+
       break;
   }
 });
@@ -142,6 +144,8 @@ document.addEventListener("keyup", (e) => {
       dPressed = false;
       break;
     case " ":
+      player.gravity = 2.1;
+      socket.emit("playerGravity", player);
       upPressed = false;
       break;
   }
@@ -162,6 +166,14 @@ socket.on("OnlinePlayerPosY", (data) => {
   for (let i = 0; i < players.length; i++) {
     if (players[i].name == data.name) {
       players[i].velocity.y = data.velocity.y;
+      break;
+    }
+  }
+});
+socket.on("OnlinePlayerGravity", (data) => {
+  for (let i = 0; i < players.length; i++) {
+    if (players[i].name == data.name) {
+      players[i].gravity = data.gravity;
       break;
     }
   }
@@ -188,7 +200,8 @@ function load() {
           players_connected[i][0].position,
           players_connected[i][0].velocity,
           (players_connected[i][0].color = "purple"),
-          players_connected[i][0].size
+          players_connected[i][0].size,
+          players_connected[i][0].gravity
         )
       );
     }
@@ -199,14 +212,22 @@ let x = 0;
 function animate() {
   requestAnimationFrame(animate);
   c.clearRect(0, 0, innerWidth, innerHeight);
-  if (x < 2.5 && upPressed) {
-    x += 0.2;
-    player.velocity.y -= 0.8 * (5 * x - 2 * x ** 2);
-    socket.emit("playerMovementY", player);
-  } else {
-    upPressed = false;
-    x = 0;
-    socket.emit("playerMovementY", player);
+  // if (x < 2.5 && upPressed) {
+  //   x += 0.2;
+  //   player.velocity.y -= 0.8 * (5 * x - 2 * x ** 2);
+  //   socket.emit("playerMovementY", player);
+  // } else {
+  //   upPressed = false;
+  //   x = 0;
+  //   socket.emit("playerMovementY", player);
+  // }
+  if (player.position.y + player.size.y + player.velocity.y > myCanvas.height) {
+    if (upPressed) {
+      player.velocity.y = -20;
+      player.gravity = 0.7;
+      socket.emit("playerMovementY", player);
+      socket.emit("playerGravity", player);
+    }
   }
   player.update();
   for (let i = 0; i < players.length; i++) {
@@ -229,7 +250,8 @@ socket.on("playerJoined", (data) => {
       data.position,
       data.velocity,
       (data.color = "purple"),
-      data.size
+      data.size,
+      data.gravity
     )
   );
 });

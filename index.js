@@ -36,6 +36,9 @@ io.on("connection", (socket) => {
   socket.on("playerMovementY", (data) => {
     socket.broadcast.emit("OnlinePlayerPosY", data);
   });
+  socket.on("playerGravity", (data) => {
+    socket.broadcast.emit("OnlinePlayerGravity", data);
+  });
 
   socket.on("updatePosition", (data) => {
     socket.broadcast.emit("PlayerPosUpdate", data);
@@ -51,6 +54,16 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(3000, () => {
+// HAMACHI
+// server.listen(3000, "25.57.38.119", () => {
+//   console.log("listening on *:3000");
+// });
+
+// LOCALHOST
+// server.listen(3000, () => {
+//   console.log("listening on *:3000");
+// });
+
+server.listen(3000, "25.57.38.119", () => {
   console.log("listening on *:3000");
 });

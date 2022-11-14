@@ -4,6 +4,8 @@ let myCanvas = document.getElementById("myCanvas");
 let c = myCanvas.getContext("2d");
 myCanvas.width = 960;
 myCanvas.height = 540;
+c.font = "20px Arial";
+c.textAlign = "center";
 
 class Player {
   constructor({ name, position, velocity, color, size, gravity }) {
@@ -38,18 +40,21 @@ class Player {
 }
 
 class OnlinePlayer {
-  constructor(name, position, velocity, color, size, gravity) {
+  constructor(name, position, velocity, color, size, gravity, id) {
     this.name = name;
     this.position = position;
     this.velocity = velocity;
     this.color = color;
     this.size = size;
     this.gravity = gravity;
+    this.id = id;
   }
 
   render() {
     c.fillStyle = this.color;
     c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
+    c.fillStyle = "black";
+    c.fillText(this.name, this.position.x + 25, this.position.y - 20);
   }
 
   update() {
@@ -89,6 +94,10 @@ const player = new Player({
 });
 
 socket.emit("playerData", player);
+let id;
+socket.on("idToClient", (data) => {
+  id = data;
+});
 
 let aPressed = false;
 let dPressed = false;
@@ -184,7 +193,6 @@ socket.on("PlayerPosUpdate", (data) => {
     if (players[i].name == data.name) {
       players[i].position.x = data.position.x;
       players[i].position.y = data.position.y;
-      console.log(players[i].name, "position was updated");
       break;
     }
   }
@@ -192,8 +200,7 @@ socket.on("PlayerPosUpdate", (data) => {
 
 function load() {
   for (let i = 0; i < players_connected.length; i++) {
-    if (players_connected[i][0].name != userName) {
-      console.log(players_connected[i][0].position);
+    if (players_connected[i][1] != id) {
       players.push(
         new OnlinePlayer(
           players_connected[i][0].name,
@@ -201,7 +208,8 @@ function load() {
           players_connected[i][0].velocity,
           (players_connected[i][0].color = "purple"),
           players_connected[i][0].size,
-          players_connected[i][0].gravity
+          players_connected[i][0].gravity,
+          players_connected[i][1]
         )
       );
     }
@@ -233,7 +241,6 @@ function animate() {
   for (let i = 0; i < players.length; i++) {
     players[i].update();
   }
-  console.log(player.velocity.y);
 }
 
 socket.emit("loadPlayers");
@@ -246,20 +253,22 @@ socket.on("playerList", (data) => {
 socket.on("playerJoined", (data) => {
   players.push(
     new OnlinePlayer(
-      data.name,
-      data.position,
-      data.velocity,
-      (data.color = "purple"),
-      data.size,
-      data.gravity
+      data[0].name,
+      data[0].position,
+      data[0].velocity,
+      (data[0].color = "purple"),
+      data[0].size,
+      data[0].gravity,
+      data[1]
     )
   );
 });
 
 socket.on("disconnected", (data) => {
   for (let i = 0; i < players.length; i++) {
-    if (data.name == players[i].name) {
-      players.splice(i);
+    if (data == players[i].id) {
+      players.splice(i, 1);
+      break;
     }
   }
 });

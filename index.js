@@ -18,16 +18,16 @@ io.on("connection", (socket) => {
     console.log("user disconnected");
     for (let i = 0; i < players_connected.length; i++) {
       if (players_connected[i][1] == socket.id) {
-        socket.broadcast.emit("disconnected", players_connected[i][0]);
+        socket.broadcast.emit("disconnected", players_connected[i][1]);
         players_connected.splice(i, 1);
-        console.log("a");
       }
     }
   });
 
   socket.on("playerData", (data) => {
     players_connected.push([data, socket.id]);
-    socket.broadcast.emit("playerJoined", data);
+    socket.broadcast.emit("playerJoined", [data, socket.id]);
+    socket.emit("idToClient", socket.id);
     console.log(players_connected);
   });
   socket.on("playerMovementX", (data) => {
@@ -64,6 +64,6 @@ io.on("connection", (socket) => {
 //   console.log("listening on *:3000");
 // });
 
-server.listen(3000, "25.57.38.119", () => {
+server.listen(3000, () => {
   console.log("listening on *:3000");
 });

@@ -10,18 +10,22 @@
   </head>
   <body>
     <div id="menu">
-      <form>
+      <form onsubmit="return false">
         <p>Enter Name</p>
-        <input type="text" name="name" />
+        <input class="menuItem" id="userName" type="text" name="name" />
         <br />
-        <input type="submit" id="start" value="Start Game" />
+        <button class="menuItem" id="start" type="button">Start Game</button>
       </form>
       <div id="picker">
-        <div class="black size">Hej</div>
+        <div class="black size"></div>
         <div class="red size"></div>
         <div class="blue size"></div>
+        <div class="purple size"></div>
         <div class="green size"></div>
+        <div class="pink size"></div>
+        <div class="orange size"></div>
       </div>
+      <div id="error"></div>
     </div>
     <canvas id="myCanvas"></canvas>
   </body>

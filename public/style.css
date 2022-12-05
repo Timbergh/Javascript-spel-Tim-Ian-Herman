@@ -1,12 +1,17 @@
 @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+* {
+  padding: 0;
+  margin: 0;
+}
 
 body {
   background-color: rgb(49, 49, 49);
+  --s: 50px; /* size  */
+  --m: 4px; /* margin */
 }
 
 #myCanvas {
   display: none;
-  opacity: 0;
 }
 
 #menu {
@@ -24,23 +29,54 @@ body {
 }
 
 #picker {
+  margin: 30px;
+  position: relative;
   display: flex;
-  width: 1000px;
-  height: 100px;
-  gap: 10px;
+  font-size: 0;
+  width: auto;
+  height: auto;
 }
+
 .size {
   width: 50px;
   height: 50px;
+  cursor: pointer;
 }
 .black {
   background-color: black;
 }
+#picker div:hover {
+  border: 1px white solid;
+}
+
 .red {
   background-color: red;
 }
 .blue {
   background-color: blue;
+}
+.green {
+  background-color: green;
+}
+.purple {
+  background-color: purple;
+}
+.pink {
+  background-color: pink;
+}
+.orange {
+  background-color: orange;
+}
+
+form {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+.menuItem {
+  margin: 10px;
 }
 
 #start {
@@ -48,4 +84,9 @@ body {
   background: none;
   cursor: pointer;
   font-family: "Press Start 2P", cursive;
+  font-size: larger;
+}
+
+#error {
+  display: none;
 }

@@ -2,6 +2,7 @@ let color = "";
 let first = false;
 let second = false;
 let started = false;
+let buildmode = document.getElementById("build");
 color_picker = document.getElementsByClassName("size");
 for (let i = 0; i < color_picker.length; i++) {
   color_picker[i].onclick = function () {
@@ -48,42 +49,23 @@ function start() {
   menu = document.getElementById("menu");
 
   class Line {
-    constructor(x1, y1, x2, y2) {
+    constructor(x1, y1, x2, y2, lineColor) {
       this.x1 = x1;
       this.y1 = y1;
       this.x2 = x2;
       this.y2 = y2;
+      this.lineColor = lineColor;
     }
 
     render() {
       c.beginPath();
-      c.moveTo(this.x1, this.y1);
-      c.lineTo(this.x2, this.y2);
+      c.moveTo(this.x1 - (this.x1 % 25), this.y1 - (this.y1 % 25));
+      c.lineTo(this.x2 - (this.x2 % 25), this.y2 - (this.y2 % 25));
       c.lineWidth = 3;
+      c.strokeStyle = this.lineColor;
       c.stroke();
     }
   }
-
-  let firstClick = false;
-  let lines = [];
-  document.addEventListener("click", (e) => {
-    let rect = myCanvas.getBoundingClientRect();
-    if (!firstClick) {
-      mouseX = e.clientX - rect.left;
-      mouseY = e.clientY - rect.top;
-      firstClick = true;
-    } else {
-      mouseX2 = e.clientX - rect.left;
-      mouseY2 = e.clientY - rect.top;
-      firstClick = false;
-      lines.push(new Line(mouseX, mouseY, mouseX2, mouseY2));
-      if (started) {
-        lines.pop();
-        started = false;
-      }
-      console.log(lines);
-    }
-  });
 
   class Player {
     constructor({ name, position, velocity, color, size, gravity }) {
@@ -119,6 +101,67 @@ function start() {
         this.gravity = 2.1;
       }
     }
+  }
+
+  let firstClick = false;
+  let lines = [];
+  let paths = [];
+  if (buildmode.checked) {
+    let continuePath = false;
+    document.addEventListener("click", (e) => {
+      let rect = myCanvas.getBoundingClientRect();
+      if (!firstClick) {
+        if (!continuePath) {
+          mouseX = e.clientX - rect.left;
+          mouseY = e.clientY - rect.top;
+        } else {
+          mouseX = mouseX2;
+          mouseY = mouseY2;
+        }
+        paths.push(
+          new Line(
+            mouseX,
+            mouseY,
+            e.clientX - rect.left,
+            e.clientY - rect.top,
+            "gray"
+          )
+        );
+        firstClick = true;
+      } else {
+        mouseX2 = e.clientX - rect.left;
+        mouseY2 = e.clientY - rect.top;
+        firstClick = false;
+        paths = [];
+        lines.push(new Line(mouseX, mouseY, mouseX2, mouseY2, "black"));
+        if (started) {
+          lines.pop();
+          started = false;
+        }
+        console.log(lines);
+      }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      switch (e.key) {
+        case "Shift":
+          continuePath = true;
+          break;
+        case "Ctrl" && "z":
+          lines.pop();
+          break;
+      }
+    });
+
+    document.addEventListener("keyup", (e) => {
+      switch (e.key) {
+        case "Shift":
+          continuePath = false;
+          firstClick = false;
+          paths = [];
+          break;
+      }
+    });
   }
 
   const player = new Player({
@@ -206,7 +249,6 @@ function start() {
         break;
       case " ":
         upPressed = true;
-
         break;
     }
   });
@@ -301,11 +343,26 @@ function start() {
     }
   }
 
+  document.addEventListener("mousemove", (e) => {
+    let rect = myCanvas.getBoundingClientRect();
+    try {
+      paths[0].x2 = e.clientX - rect.left;
+      paths[0].y2 = e.clientY - rect.top;
+    } catch (error) {
+      // pass
+    }
+  });
+
   function animate() {
     requestAnimationFrame(animate);
     c.clearRect(0, 0, innerWidth, innerHeight);
     for (let i = 0; i < lines.length; i++) {
       lines[i].render();
+    }
+    try {
+      paths[0].render();
+    } catch (error) {
+      // pass
     }
     if (
       player.position.y + player.size.y + player.velocity.y >

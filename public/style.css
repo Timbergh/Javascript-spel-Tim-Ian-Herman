@@ -12,6 +12,13 @@ body {
 
 #myCanvas {
   display: none;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: auto;
+  background-color: rgb(77, 77, 77);
 }
 
 #menu {
@@ -42,30 +49,39 @@ body {
   height: 50px;
   cursor: pointer;
 }
-.black {
-  background-color: black;
-}
 #picker div:hover {
   border: 1px white solid;
 }
 
-.red {
-  background-color: red;
+._cc6155 {
+  background-color: #cc6155;
 }
-.blue {
-  background-color: blue;
+._af7ac4 {
+  background-color: #af7ac4;
 }
-.green {
-  background-color: green;
+._5599c7 {
+  background-color: #5599c7;
 }
-.purple {
-  background-color: purple;
+._48c9b0 {
+  background-color: #48c9b0;
 }
-.pink {
-  background-color: pink;
+._53be80 {
+  background-color: #53be80;
 }
-.orange {
-  background-color: orange;
+._f4cf40 {
+  background-color: #f4cf40;
+}
+._eb984e {
+  background-color: #eb984e;
+}
+._f0f3f4 {
+  background-color: #f0f3f4;
+}
+._a9b7b8 {
+  background-color: #a9b7b8;
+}
+._5d6d7d {
+  background-color: #5d6d7d;
 }
 
 form {

@@ -1,27 +1,30 @@
 let color = "";
 let first = false;
 let second = false;
+let started = false;
 color_picker = document.getElementsByClassName("size");
-console.log(color_picker);
 for (let i = 0; i < color_picker.length; i++) {
   color_picker[i].onclick = function () {
     color = color_picker[i].classList[0];
+    color = color.split("");
+    color[0] = "#";
+    color = color.join("");
     if (first == false) {
-      if (color == "black") {
+      if (color == "#cc6155") {
         first = true;
       } else {
         first = false;
       }
     }
     if (second == false) {
-      if (first == true && color == "red" && second == false) {
+      if (first == true && color == "#f4cf40" && second == false) {
         second = true;
       } else {
         second = false;
       }
     }
-    if (second == true && color == "blue") {
-      color = "yellow";
+    if (second == true && color == "#f0f3f4") {
+      color = "#fbf3cf";
     }
 
     color_picker[i].style.border = "1px white solid";
@@ -32,9 +35,7 @@ for (let i = 0; i < color_picker.length; i++) {
     }
   };
 }
-color_picker.onclick = function () {
-  console.log("hej");
-};
+
 function start() {
   let socket = io();
   window.focus;
@@ -45,6 +46,44 @@ function start() {
   c.font = "20px Arial";
   c.textAlign = "center";
   menu = document.getElementById("menu");
+
+  class Line {
+    constructor(x1, y1, x2, y2) {
+      this.x1 = x1;
+      this.y1 = y1;
+      this.x2 = x2;
+      this.y2 = y2;
+    }
+
+    render() {
+      c.beginPath();
+      c.moveTo(this.x1, this.y1);
+      c.lineTo(this.x2, this.y2);
+      c.lineWidth = 3;
+      c.stroke();
+    }
+  }
+
+  let firstClick = false;
+  let lines = [];
+  document.addEventListener("click", (e) => {
+    let rect = myCanvas.getBoundingClientRect();
+    if (!firstClick) {
+      mouseX = e.clientX - rect.left;
+      mouseY = e.clientY - rect.top;
+      firstClick = true;
+    } else {
+      mouseX2 = e.clientX - rect.left;
+      mouseY2 = e.clientY - rect.top;
+      firstClick = false;
+      lines.push(new Line(mouseX, mouseY, mouseX2, mouseY2));
+      if (started) {
+        lines.pop();
+        started = false;
+      }
+      console.log(lines);
+    }
+  });
 
   class Player {
     constructor({ name, position, velocity, color, size, gravity }) {
@@ -265,15 +304,9 @@ function start() {
   function animate() {
     requestAnimationFrame(animate);
     c.clearRect(0, 0, innerWidth, innerHeight);
-    // if (x < 2.5 && upPressed) {
-    //   x += 0.2;
-    //   player.velocity.y -= 0.8 * (5 * x - 2 * x ** 2);
-    //   socket.emit("playerMovementY", player);
-    // } else {
-    //   upPressed = false;
-    //   x = 0;
-    //   socket.emit("playerMovementY", player);
-    // }
+    for (let i = 0; i < lines.length; i++) {
+      lines[i].render();
+    }
     if (
       player.position.y + player.size.y + player.velocity.y >
       myCanvas.height
@@ -328,6 +361,7 @@ startBtn.onclick = function () {
   if (color != "" && userName != "") {
     menu.style.display = "none";
     myCanvas.style.display = "block";
+    started = true;
     start();
   } else if (color == "" && userName == "") {
     error.innerHTML = "Pick a name and color before starting!";

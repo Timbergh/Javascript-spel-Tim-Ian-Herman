@@ -59,8 +59,8 @@ function start() {
 
     render() {
       c.beginPath();
-      c.moveTo(this.x1 - (this.x1 % 25), this.y1 - (this.y1 % 25));
-      c.lineTo(this.x2 - (this.x2 % 25), this.y2 - (this.y2 % 25));
+      c.moveTo(this.x1 - (this.x1 % 20), this.y1 - (this.y1 % 20));
+      c.lineTo(this.x2 - (this.x2 % 20), this.y2 - (this.y2 % 20));
       c.lineWidth = 3;
       c.strokeStyle = this.lineColor;
       c.stroke();
@@ -147,7 +147,7 @@ function start() {
         case "Shift":
           continuePath = true;
           break;
-        case "Ctrl" && "z":
+        case "z":
           lines.pop();
           break;
       }
@@ -378,6 +378,18 @@ function start() {
     player.update();
     for (let i = 0; i < players.length; i++) {
       players[i].update();
+    }
+
+    // HORIZONTAL LINES COLLISION
+    for (let i = 0; i < lines.length; i++) {
+      if (
+        player.position.y + player.size.y >= lines[i].y1 &&
+        player.position.y <= lines[i].y2 + 3 &&
+        player.position.x + player.size.x >= lines[i].x1 &&
+        player.position.x <= lines[i].x2
+      ) {
+        player.position.y = lines[i].y1 - player.size.y - (lines[i].y1 % 20);
+      }
     }
   }
 

@@ -49,19 +49,20 @@ function start() {
   menu = document.getElementById("menu");
 
   class Line {
-    constructor(x1, y1, x2, y2, lineColor) {
+    constructor(x1, y1, x2, y2, lineColor, width) {
       this.x1 = x1;
       this.y1 = y1;
       this.x2 = x2;
       this.y2 = y2;
       this.lineColor = lineColor;
+      this.width = width;
     }
 
     render() {
       c.beginPath();
-      c.moveTo(this.x1 - (this.x1 % 20), this.y1 - (this.y1 % 20));
-      c.lineTo(this.x2 - (this.x2 % 20), this.y2 - (this.y2 % 20));
-      c.lineWidth = 3;
+      c.moveTo(this.x1, this.y1);
+      c.lineTo(this.x2, this.y2);
+      c.lineWidth = this.width;
       c.strokeStyle = this.lineColor;
       c.stroke();
     }
@@ -112,8 +113,8 @@ function start() {
       let rect = myCanvas.getBoundingClientRect();
       if (!firstClick) {
         if (!continuePath) {
-          mouseX = e.clientX - rect.left;
-          mouseY = e.clientY - rect.top;
+          mouseX = e.clientX - (e.clientX % 20) - rect.left;
+          mouseY = e.clientY - (e.clientY % 20) - rect.top;
         } else {
           mouseX = mouseX2;
           mouseY = mouseY2;
@@ -122,18 +123,19 @@ function start() {
           new Line(
             mouseX,
             mouseY,
-            e.clientX - rect.left,
-            e.clientY - rect.top,
-            "gray"
+            e.clientX - (e.clientX % 20) - rect.left,
+            e.clientY - (e.clientY % 20) - rect.top,
+            "gray",
+            3
           )
         );
         firstClick = true;
       } else {
-        mouseX2 = e.clientX - rect.left;
-        mouseY2 = e.clientY - rect.top;
+        mouseX2 = e.clientX - (e.clientX % 20) - rect.left;
+        mouseY2 = e.clientY - (e.clientY % 20) - rect.top;
         firstClick = false;
         paths = [];
-        lines.push(new Line(mouseX, mouseY, mouseX2, mouseY2, "black"));
+        lines.push(new Line(mouseX, mouseY, mouseX2, mouseY2, "black", 3));
         if (started) {
           lines.pop();
           started = false;
@@ -353,6 +355,7 @@ function start() {
     }
   });
 
+  let onPlatform = false;
   function animate() {
     requestAnimationFrame(animate);
     c.clearRect(0, 0, innerWidth, innerHeight);
@@ -365,31 +368,33 @@ function start() {
       // pass
     }
     if (
-      player.position.y + player.size.y + player.velocity.y >
-      myCanvas.height
+      player.position.y + player.size.y + player.velocity.y > myCanvas.height ||
+      onPlatform
     ) {
       if (upPressed) {
         player.velocity.y = -20;
         player.gravity = 0.7;
         socket.emit("playerMovementY", player);
         socket.emit("playerGravity", player);
+        onPlatform = false;
       }
-    }
-    player.update();
-    for (let i = 0; i < players.length; i++) {
-      players[i].update();
     }
 
     // HORIZONTAL LINES COLLISION
     for (let i = 0; i < lines.length; i++) {
       if (
-        player.position.y + player.size.y >= lines[i].y1 &&
-        player.position.y <= lines[i].y2 + 3 &&
+        player.position.y + player.size.y + player.velocity.y >= lines[i].y1 &&
+        player.position.y <= lines[i].y1 &&
         player.position.x + player.size.x >= lines[i].x1 &&
         player.position.x <= lines[i].x2
       ) {
-        player.position.y = lines[i].y1 - player.size.y - (lines[i].y1 % 20);
+        player.velocity.y = 0;
+        onPlatform = true;
       }
+    }
+    player.update();
+    for (let i = 0; i < players.length; i++) {
+      players[i].update();
     }
   }
 
@@ -423,6 +428,7 @@ function start() {
     }
   });
 }
+
 startBtn = document.getElementById("start");
 error = document.getElementById("error");
 startBtn.onclick = function () {

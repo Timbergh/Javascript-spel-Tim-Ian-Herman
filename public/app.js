@@ -2,6 +2,7 @@ let color = "";
 let first = false;
 let second = false;
 let started = false;
+let snapDeg = 20;
 let buildmode = document.getElementById("build");
 color_picker = document.getElementsByClassName("size");
 for (let i = 0; i < color_picker.length; i++) {
@@ -56,12 +57,23 @@ function start() {
       this.y2 = y2;
       this.lineColor = lineColor;
       this.width = width;
+      this.isHorizontal = y1 == y2;
+      this.isVertical = x1 == x2;
+      this.isDiagonal = !(this.isVertical || this.isHorizontal);
     }
 
     render() {
       c.beginPath();
       c.moveTo(this.x1, this.y1);
       c.lineTo(this.x2, this.y2);
+      c.lineWidth = this.width;
+      c.strokeStyle = this.lineColor;
+      c.stroke();
+    }
+    renderPath() {
+      c.beginPath();
+      c.moveTo(this.x1, this.y1);
+      c.lineTo(this.x2 - (this.x2 % snapDeg), this.y2 - (this.y2 % snapDeg));
       c.lineWidth = this.width;
       c.strokeStyle = this.lineColor;
       c.stroke();
@@ -113,8 +125,10 @@ function start() {
       let rect = myCanvas.getBoundingClientRect();
       if (!firstClick) {
         if (!continuePath) {
-          mouseX = e.clientX - (e.clientX % 20) - rect.left;
-          mouseY = e.clientY - (e.clientY % 20) - rect.top;
+          mouseX = e.clientX - rect.left;
+          mouseY = e.clientY - rect.top;
+          mouseX = mouseX - (mouseX % snapDeg);
+          mouseY = mouseY - (mouseY % snapDeg);
         } else {
           mouseX = mouseX2;
           mouseY = mouseY2;
@@ -123,16 +137,18 @@ function start() {
           new Line(
             mouseX,
             mouseY,
-            e.clientX - (e.clientX % 20) - rect.left,
-            e.clientY - (e.clientY % 20) - rect.top,
+            e.clientX - rect.left,
+            e.clientY - rect.top,
             "gray",
             3
           )
         );
         firstClick = true;
       } else {
-        mouseX2 = e.clientX - (e.clientX % 20) - rect.left;
-        mouseY2 = e.clientY - (e.clientY % 20) - rect.top;
+        mouseX2 = e.clientX - rect.left;
+        mouseY2 = e.clientY - rect.top;
+        mouseX2 = mouseX2 - (mouseX2 % snapDeg);
+        mouseY2 = mouseY2 - (mouseY2 % snapDeg);
         firstClick = false;
         paths = [];
         lines.push(new Line(mouseX, mouseY, mouseX2, mouseY2, "black", 3));
@@ -355,6 +371,21 @@ function start() {
     }
   });
 
+  function collision(x1, y1, x2, y2, x3, y3, x4, y4) {
+    let uA =
+      ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) /
+      ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
+    let uB =
+      ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) /
+      ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
+    if (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) {
+      let intersectionX = x1 + uA * (x2 - x1);
+      let intersectionY = y1 + uA * (y2 - y1);
+      return [true, intersectionX, intersectionY];
+    }
+    return [false, 0, 0];
+  }
+
   let onPlatform = false;
   function animate() {
     requestAnimationFrame(animate);
@@ -363,7 +394,7 @@ function start() {
       lines[i].render();
     }
     try {
-      paths[0].render();
+      paths[0].renderPath();
     } catch (error) {
       // pass
     }
@@ -380,18 +411,72 @@ function start() {
       }
     }
 
-    // HORIZONTAL LINES COLLISION
     for (let i = 0; i < lines.length; i++) {
-      if (
-        player.position.y + player.size.y + player.velocity.y >= lines[i].y1 &&
-        player.position.y <= lines[i].y1 &&
-        player.position.x + player.size.x >= lines[i].x1 &&
-        player.position.x <= lines[i].x2
-      ) {
-        player.velocity.y = 0;
-        onPlatform = true;
+      if (lines[i].isDiagonal) {
+        let leftCollision = collision(
+          player.position.x,
+          player.position.y,
+          player.position.x,
+          player.position.y + player.size.y,
+          lines[i].x1,
+          lines[i].y1,
+          lines[i].x2,
+          lines[i].y2
+        );
+        let rightCollision = collision(
+          player.position.x + player.size.x,
+          player.position.y,
+          player.position.x + player.size.x,
+          player.position.y + player.size.y,
+          lines[i].x1,
+          lines[i].y1,
+          lines[i].x2,
+          lines[i].y2
+        );
+        let topCollision = collision(
+          player.position.x,
+          player.position.y,
+          player.position.x + player.size.x,
+          player.position.y,
+          lines[i].x1,
+          lines[i].y1,
+          lines[i].x2,
+          lines[i].y2
+        );
+        if (topCollision[0]) {
+          player.position.y = topCollision[2] + lines[i].width + 5;
+          player.velocity.y = 0;
+        } else if (leftCollision[0]) {
+          onPlatform = true;
+          player.position.y =
+            leftCollision[2] - player.size.y - lines[i].width + 5;
+          player.velocity.y = 0;
+        } else if (rightCollision[0]) {
+          onPlatform = true;
+          player.position.y =
+            rightCollision[2] - player.size.y - lines[i].width;
+          player.velocity.y = 0;
+        }
+      }
+      if (lines[i].isHorizontal) {
+        if (
+          (player.position.y + player.size.y + player.velocity.y >=
+            lines[i].y1 &&
+            player.position.y <= lines[i].y1 &&
+            player.position.x + player.size.x >= lines[i].x1 &&
+            player.position.x <= lines[i].x2) ||
+          (player.position.y + player.size.y + player.velocity.y >=
+            lines[i].y1 &&
+            player.position.y <= lines[i].y1 &&
+            player.position.x + player.size.x >= lines[i].x2 &&
+            player.position.x <= lines[i].x1)
+        ) {
+          player.velocity.y = 0;
+          onPlatform = true;
+        }
       }
     }
+
     player.update();
     for (let i = 0; i < players.length; i++) {
       players[i].update();

@@ -443,22 +443,36 @@ function start() {
           lines[i].x2,
           lines[i].y2
         );
+        let bottomCollision = collision(
+          player.position.x,
+          player.position.y + player.size.y,
+          player.position.x + player.size.x,
+          player.position.y + player.size.y,
+          lines[i].x1,
+          lines[i].y1,
+          lines[i].x2,
+          lines[i].y2
+        );
         if (topCollision[0]) {
           player.position.y = topCollision[2] + lines[i].width + 5;
           player.velocity.y = 0;
         } else if (leftCollision[0]) {
           onPlatform = true;
-          player.position.y =
-            leftCollision[2] - player.size.y - lines[i].width + 5;
+          player.position.y = leftCollision[2] - player.size.y - lines[i].width;
           player.velocity.y = 0;
         } else if (rightCollision[0]) {
           onPlatform = true;
           player.position.y =
             rightCollision[2] - player.size.y - lines[i].width;
           player.velocity.y = 0;
+        } else if (bottomCollision[0]) {
+          onPlatform = true;
+          player.position.y =
+            bottomCollision[2] - player.size.y - lines[i].width;
+          player.velocity.y = 0;
         }
       }
-      if (lines[i].isHorizontal) {
+      if (!lines[i].isDiagonal) {
         if (
           (player.position.y + player.size.y + player.velocity.y >=
             lines[i].y1 &&
@@ -473,6 +487,24 @@ function start() {
         ) {
           player.velocity.y = 0;
           onPlatform = true;
+        }
+        if (
+          (player.position.x + player.size.x >= lines[i].x1 &&
+            player.position.x <= lines[i].x1 &&
+            player.position.y + player.size.y >= lines[i].y1 &&
+            player.position.y <= lines[i].y2) ||
+          (player.position.x + player.size.x >= lines[i].x2 &&
+            player.position.x <= lines[i].x2 &&
+            player.position.y + player.size.y >= lines[i].y2 &&
+            player.position.y <= lines[i].y1)
+        ) {
+          player.velocity.x = 0;
+          let playerCenter = player.position.x + player.size.x / 2;
+          if (lines[i].x1 - playerCenter > 0) {
+            player.position.x -= 1;
+          } else {
+            player.position.x += 1;
+          }
         }
       }
     }

@@ -60,6 +60,8 @@ function start() {
       this.isHorizontal = y1 == y2;
       this.isVertical = x1 == x2;
       this.isDiagonal = !(this.isVertical || this.isHorizontal);
+      this.multiplier = 1;
+      this.angle = 0;
     }
 
     render() {
@@ -69,6 +71,9 @@ function start() {
       c.lineWidth = this.width;
       c.strokeStyle = this.lineColor;
       c.stroke();
+      this.multiplier = -(this.x2 - this.x1) / (this.y2 - this.y1);
+      this.angle =
+        -(Math.atan((this.y2 - this.y1) / (this.x2 - this.x1)) * 180) / Math.PI;
     }
     renderPath() {
       c.beginPath();
@@ -88,6 +93,7 @@ function start() {
       this.color = color;
       this.size = size;
       this.gravity = gravity;
+      this.walkingDiagonal = false;
     }
 
     render() {
@@ -101,6 +107,8 @@ function start() {
       this.position.y += this.velocity.y;
 
       if (this.position.y + this.size.y + this.velocity.y > myCanvas.height) {
+        this.velocity.y = myCanvas.height - (this.position.y + this.size.y);
+        this.position.y += this.velocity.y;
         this.velocity.y = 0;
         this.gravity = 0.7;
       } else {
@@ -276,6 +284,8 @@ function start() {
       case "a":
         if (dPressed) {
           player.velocity.x = 5;
+          line_under = checkUnder(player.position.y, player.position.x);
+          player.velocity.y = 5 / line_under.multiplier;
           socket.emit("playerMovementX", player);
           socket.emit("updatePosition", player);
         } else {
@@ -288,6 +298,8 @@ function start() {
       case "d":
         if (aPressed) {
           player.velocity.x = -5;
+          line_under = checkUnder(player.position.y, player.position.x);
+          player.velocity.y = 5 / line_under.multiplier;
           socket.emit("playerMovementX", player);
           socket.emit("updatePosition", player);
         } else {
@@ -371,20 +383,38 @@ function start() {
     }
   });
 
-  function collision(x1, y1, x2, y2, x3, y3, x4, y4) {
-    let uA =
-      ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) /
-      ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
-    let uB =
-      ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) /
-      ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
-    if (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) {
-      let intersectionX = x1 + uA * (x2 - x1);
-      let intersectionY = y1 + uA * (y2 - y1);
-      return [true, intersectionX, intersectionY];
+  function checkUnder(y, x) {
+    closest = 10000;
+    lines_under = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (
+        y + player.size.y < lines[i].y + 1 &&
+        lines[i].y - (y + 30) < closest &&
+        closest >= 0 &&
+        x < lines[i].x + lines[i].width &&
+        x + player.size.x > lines[i].x
+      ) {
+        closest = lines[i].y - (y + 30);
+        lines_under = i;
+      }
     }
-    return [false, 0, 0];
+    return lines_under;
   }
+
+  // function collision(x1, y1, x2, y2, x3, y3, x4, y4) {
+  //   let uA =
+  //     ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) /
+  //     ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
+  //   let uB =
+  //     ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) /
+  //     ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
+  //   if (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) {
+  //     let intersectionX = x1 + uA * (x2 - x1);
+  //     let intersectionY = y1 + uA * (y2 - y1);
+  //     return [true, intersectionX, intersectionY];
+  //   }
+  //   return [false, 0, 0];
+  // }
 
   let onPlatform = false;
   function animate() {
@@ -412,99 +442,98 @@ function start() {
     }
 
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].isDiagonal) {
-        let leftCollision = collision(
-          player.position.x,
-          player.position.y,
-          player.position.x,
-          player.position.y + player.size.y,
-          lines[i].x1,
-          lines[i].y1,
-          lines[i].x2,
-          lines[i].y2
-        );
-        let rightCollision = collision(
-          player.position.x + player.size.x,
-          player.position.y,
-          player.position.x + player.size.x,
-          player.position.y + player.size.y,
-          lines[i].x1,
-          lines[i].y1,
-          lines[i].x2,
-          lines[i].y2
-        );
-        let topCollision = collision(
-          player.position.x,
-          player.position.y,
-          player.position.x + player.size.x,
-          player.position.y,
-          lines[i].x1,
-          lines[i].y1,
-          lines[i].x2,
-          lines[i].y2
-        );
-        let bottomCollision = collision(
-          player.position.x,
-          player.position.y + player.size.y,
-          player.position.x + player.size.x,
-          player.position.y + player.size.y,
-          lines[i].x1,
-          lines[i].y1,
-          lines[i].x2,
-          lines[i].y2
-        );
-        if (topCollision[0]) {
-          player.position.y = topCollision[2] + lines[i].width + 5;
-          player.velocity.y = 0;
-        } else if (leftCollision[0]) {
-          onPlatform = true;
-          player.position.y = leftCollision[2] - player.size.y - lines[i].width;
-          player.velocity.y = 0;
-        } else if (rightCollision[0]) {
-          onPlatform = true;
-          player.position.y =
-            rightCollision[2] - player.size.y - lines[i].width;
-          player.velocity.y = 0;
-        } else if (bottomCollision[0]) {
-          onPlatform = true;
-          player.position.y =
-            bottomCollision[2] - player.size.y - lines[i].width;
-          player.velocity.y = 0;
-        }
+      //   if (lines[i].isDiagonal) {
+      //     let leftCollision = collision(
+      //       player.position.x,
+      //       player.position.y,
+      //       player.position.x,
+      //       player.position.y + player.size.y,
+      //       lines[i].x1,
+      //       lines[i].y1,
+      //       lines[i].x2,
+      //       lines[i].y2
+      //     );
+      //     let rightCollision = collision(
+      //       player.position.x + player.size.x,
+      //       player.position.y,
+      //       player.position.x + player.size.x,
+      //       player.position.y + player.size.y,
+      //       lines[i].x1,
+      //       lines[i].y1,
+      //       lines[i].x2,
+      //       lines[i].y2
+      //     );
+      //     let topCollision = collision(
+      //       player.position.x,
+      //       player.position.y,
+      //       player.position.x + player.size.x,
+      //       player.position.y,
+      //       lines[i].x1,
+      //       lines[i].y1,
+      //       lines[i].x2,
+      //       lines[i].y2
+      //     );
+      //     let bottomCollision = collision(
+      //       player.position.x,
+      //       player.position.y + player.size.y,
+      //       player.position.x + player.size.x,
+      //       player.position.y + player.size.y,
+      //       lines[i].x1,
+      //       lines[i].y1,
+      //       lines[i].x2,
+      //       lines[i].y2
+      //     );
+      //     if (topCollision[0]) {
+      //       player.position.y = topCollision[2] + lines[i].width + 5;
+      //     } else if (leftCollision[0]) {
+      //       onPlatform = true;
+      //       player.position.y = leftCollision[2] - player.size.y - lines[i].width;
+      //       player.velocity.y = 0;
+      //     } else if (rightCollision[0]) {
+      //       onPlatform = true;
+      //       player.position.y =
+      //         rightCollision[2] - player.size.y - lines[i].width;
+      //       player.velocity.y = 0;
+      //     } else if (bottomCollision[0]) {
+      //       onPlatform = true;
+      //       player.position.y =
+      //         bottomCollision[2] - player.size.y - lines[i].width;
+      //       player.velocity.y = 0;
+      //     }
+      //   }
+
+      if (
+        (player.position.y + player.size.y + player.velocity.y >= lines[i].y1 &&
+          player.position.y <= lines[i].y1 &&
+          player.position.x + player.size.x >= lines[i].x1 &&
+          player.position.x <= lines[i].x2) ||
+        (player.position.y + player.size.y + player.velocity.y >= lines[i].y1 &&
+          player.position.y <= lines[i].y1 &&
+          player.position.x + player.size.x >= lines[i].x2 &&
+          player.position.x <= lines[i].x1)
+      ) {
+        player.velocity.y =
+          lines[i].y1 - 1 - (player.position.y + player.size.y);
+        player.position.y += player.velocity.y;
+        player.velocity.y = 0;
+        onPlatform = true;
       }
-      if (!lines[i].isDiagonal) {
-        if (
-          (player.position.y + player.size.y + player.velocity.y >=
-            lines[i].y1 &&
-            player.position.y <= lines[i].y1 &&
-            player.position.x + player.size.x >= lines[i].x1 &&
-            player.position.x <= lines[i].x2) ||
-          (player.position.y + player.size.y + player.velocity.y >=
-            lines[i].y1 &&
-            player.position.y <= lines[i].y1 &&
-            player.position.x + player.size.x >= lines[i].x2 &&
-            player.position.x <= lines[i].x1)
-        ) {
-          player.velocity.y = 0;
-          onPlatform = true;
-        }
-        if (
-          (player.position.x + player.size.x >= lines[i].x1 &&
-            player.position.x <= lines[i].x1 &&
-            player.position.y + player.size.y >= lines[i].y1 &&
-            player.position.y <= lines[i].y2) ||
-          (player.position.x + player.size.x >= lines[i].x2 &&
-            player.position.x <= lines[i].x2 &&
-            player.position.y + player.size.y >= lines[i].y2 &&
-            player.position.y <= lines[i].y1)
-        ) {
-          player.velocity.x = 0;
-          let playerCenter = player.position.x + player.size.x / 2;
-          if (lines[i].x1 - playerCenter > 0) {
-            player.position.x -= 1;
-          } else {
-            player.position.x += 1;
-          }
+      if (
+        (player.position.x + player.size.x >= lines[i].x1 &&
+          player.position.x <= lines[i].x1 &&
+          player.position.y + player.size.y >= lines[i].y1 &&
+          player.position.y <= lines[i].y2) ||
+        (player.position.x + player.size.x >= lines[i].x2 &&
+          player.position.x <= lines[i].x2 &&
+          player.position.y + player.size.y >= lines[i].y2 &&
+          player.position.y <= lines[i].y1)
+      ) {
+        player.velocity.x = 0;
+        let playerCenter = player.position.x + player.size.x / 2;
+        if (lines[i].x1 - playerCenter > 0) {
+          player.position.x -= 1;
+        } else {
+          player.position.x += 1;
         }
       }
     }

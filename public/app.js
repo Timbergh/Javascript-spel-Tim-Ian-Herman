@@ -60,21 +60,29 @@ function start() {
       this.isHorizontal = y1 == y2;
       this.isVertical = x1 == x2;
       this.isDiagonal = !(this.isVertical || this.isHorizontal);
-      this.multiplier = 1;
       this.angle = 0;
       this.hitboxright = 0;
       this.hitboxleft = 0;
     }
 
     render() {
+      let rememberX1 = this.x1;
+      let rememberX2 = this.x2;
+      let rememberY1 = this.y1;
+      let rememberY2 = this.y2;
+      if (this.x1 > this.x2) {
+        this.x1 = rememberX2;
+        this.x2 = rememberX1;
+        this.y1 = rememberY2;
+        this.y2 = rememberY1;
+      }
       c.beginPath();
       c.moveTo(this.x1, this.y1);
       c.lineTo(this.x2, this.y2);
       c.lineWidth = this.width;
       c.strokeStyle = this.lineColor;
       c.stroke();
-      this.angle =
-        -(Math.atan((this.y2 - this.y1) / (this.x2 - this.x1)) * 180) / Math.PI;
+      this.angle = Math.atan((this.y2 - this.y1) / (this.x2 - this.x1));
     }
     renderPath() {
       c.beginPath();
@@ -95,11 +103,19 @@ function start() {
       this.size = size;
       this.gravity = gravity;
       this.walkingDiagonal = false;
+      this.playerAngle = 0;
     }
 
     render() {
       c.fillStyle = this.color;
-      c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
+      c.save();
+      c.translate(
+        this.position.x + this.size.x / 2,
+        this.position.y + this.size.y / 2
+      );
+      c.rotate(this.playerAngle);
+      c.fillRect(-this.size.x / 2, -this.size.y / 2, this.size.x, this.size.y);
+      c.restore();
     }
 
     update() {
@@ -114,6 +130,7 @@ function start() {
         this.gravity = 0.7;
       } else {
         this.velocity.y += this.gravity;
+        this.playerAngle = 0;
       }
       if (
         this.velocity.y >= -1 &&
@@ -164,12 +181,6 @@ function start() {
         rememberMouseY2 = mouseY2;
         firstClick = false;
         paths = [];
-        if (mouseX > mouseX2) {
-          mouseX = rememberMouseX2;
-          mouseX2 = rememberMouseX;
-          mouseY = rememberMouseY2;
-          mouseY2 = rememberMouseY;
-        }
         lines.push(new Line(mouseX, mouseY, mouseX2, mouseY2, "black", 3));
         if (started) {
           lines.pop();
@@ -185,6 +196,7 @@ function start() {
           continuePath = true;
           break;
         case "z":
+        case "Z":
           lines.pop();
           break;
       }
@@ -271,6 +283,7 @@ function start() {
   document.addEventListener("keydown", (e) => {
     switch (e.key) {
       case "a":
+      case "A":
         if (!aPressed) {
           player.velocity.x = -5;
           socket.emit("playerMovementX", player);
@@ -278,6 +291,7 @@ function start() {
         }
         break;
       case "d":
+      case "D":
         if (!dPressed) {
           player.velocity.x = 5;
           socket.emit("playerMovementX", player);
@@ -293,6 +307,7 @@ function start() {
   document.addEventListener("keyup", (e) => {
     switch (e.key) {
       case "a":
+      case "A":
         if (dPressed) {
           player.velocity.x = 5;
           socket.emit("playerMovementX", player);
@@ -305,6 +320,7 @@ function start() {
         aPressed = false;
         break;
       case "d":
+      case "D":
         if (aPressed) {
           player.velocity.x = -5;
           socket.emit("playerMovementX", player);
@@ -456,6 +472,7 @@ function start() {
         player.position.y += player.velocity.y;
         player.velocity.y = 0;
         onPlatform = true;
+        player.playerAngle = lines[i].angle;
       }
       let hitbox = Math.min(lines[i].hitboxright, lines[i].hitboxleft);
       if (
@@ -469,6 +486,7 @@ function start() {
         player.position.y += player.velocity.y;
         player.velocity.y = 0;
         onPlatform = true;
+        player.playerAngle = lines[i].angle;
       }
 
       if (

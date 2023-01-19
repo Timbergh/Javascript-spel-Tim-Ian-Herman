@@ -61,8 +61,14 @@ function start() {
       this.isVertical = x1 == x2;
       this.isDiagonal = !(this.isVertical || this.isHorizontal);
       this.angle = 0;
-      this.hitboxright = 0;
-      this.hitboxleft = 0;
+      this.hitboxright =
+        this.y1 -
+        (player.position.x + player.size.x - this.x1) *
+          -((this.y2 - this.y1) / (this.x2 - this.x1));
+      this.hitboxleft =
+        this.y1 -
+        (player.position.x - this.x1) *
+          -((this.y2 - this.y1) / (this.x2 - this.x1));
     }
 
     render() {
@@ -104,6 +110,9 @@ function start() {
       this.gravity = gravity;
       this.walkingDiagonal = false;
       this.playerAngle = 0;
+      this.rotationSpeed = 0.1;
+      this.tooSteepLeft = false;
+      this.tooSteepRight = false;
     }
 
     render() {
@@ -130,7 +139,8 @@ function start() {
         this.gravity = 0.7;
       } else {
         this.velocity.y += this.gravity;
-        this.playerAngle = 0;
+        this.tooSteepLeft = false;
+        this.tooSteepRight = false;
       }
       if (
         this.velocity.y >= -1 &&
@@ -138,6 +148,139 @@ function start() {
         this.velocity.y != 0
       ) {
         this.gravity = 2.1;
+      }
+
+      for (let i = 0; i < lines.length; i++) {
+        if (
+          this.position.x + this.size.x >= lines[i].x1 &&
+          this.position.x + this.size.x <= lines[i].x2
+        ) {
+          lines[i].hitboxright =
+            lines[i].y1 -
+            (this.position.x + this.size.x - lines[i].x1) *
+              -((lines[i].y2 - lines[i].y1) / (lines[i].x2 - lines[i].x1));
+        }
+        if (this.position.x >= lines[i].x1 && this.position.x <= lines[i].x2) {
+          lines[i].hitboxleft =
+            lines[i].y1 -
+            (this.position.x - lines[i].x1) *
+              -((lines[i].y2 - lines[i].y1) / (lines[i].x2 - lines[i].x1));
+        }
+
+        // Horizontal
+        if (
+          (this.position.y + this.size.y + this.velocity.y >= lines[i].y1 &&
+            this.position.y <= lines[i].y1 &&
+            this.position.x + this.size.x >= lines[i].x1 &&
+            this.position.x <= lines[i].x2 &&
+            lines[i].isDiagonal == false) ||
+          (this.position.y + this.size.y + this.velocity.y >= lines[i].y1 &&
+            this.position.y <= lines[i].y1 &&
+            this.position.x + this.size.x >= lines[i].x2 &&
+            this.position.x <= lines[i].x1 &&
+            lines[i].isDiagonal == false)
+        ) {
+          this.velocity.y = lines[i].y1 - 1 - (this.position.y + this.size.y);
+          this.position.y += this.velocity.y;
+          this.velocity.y = 0;
+          onPlatform = true;
+          let angleDiff = lines[i].angle - this.playerAngle;
+          if (Math.abs(angleDiff) > 0.01) {
+            this.playerAngle += angleDiff * this.rotationSpeed;
+          }
+        }
+
+        // Diagonal
+        let hitbox = Math.min(lines[i].hitboxright, lines[i].hitboxleft);
+        if (
+          this.position.y + this.size.y + this.velocity.y >= hitbox &&
+          this.position.y <= hitbox &&
+          this.position.x + this.size.x >= lines[i].x1 &&
+          this.position.x <= lines[i].x2 &&
+          lines[i].isDiagonal == true
+        ) {
+          if (lines[i].angle > 0) {
+            if ((lines[i].x1 + lines[i].x2) / 2 - this.position.x < 0) {
+              this.velocity.y = hitbox + 1 - (this.position.y + this.size.y);
+            } else {
+              this.velocity.y =
+                hitbox + 5 * lines[i].angle - (this.position.y + this.size.y);
+            }
+          } else if (
+            lines[i].angle < 0 &&
+            (lines[i].x1 + lines[i].x2) / 2 - this.position.x < 0
+          ) {
+            this.velocity.y = hitbox + 1 - (this.position.y + this.size.y);
+          } else {
+            this.velocity.y =
+              hitbox - 5 * lines[i].angle - (this.position.y + this.size.y);
+          }
+          this.position.y += this.velocity.y;
+          this.velocity.y = 0;
+
+          onPlatform = true;
+          if (
+            lines[i].angle < 0 &&
+            this.position.x + this.size.x >= lines[i].x2
+          ) {
+            let angleDiff = 0 - this.playerAngle;
+            if (Math.abs(angleDiff) > 0.01) {
+              this.playerAngle += angleDiff * this.rotationSpeed;
+            }
+          } else if (lines[i].angle > 0 && this.position.x <= lines[i].x1) {
+            let angleDiff = 0 - this.playerAngle;
+            if (Math.abs(angleDiff) > 0.01) {
+              this.playerAngle += angleDiff * this.rotationSpeed;
+            }
+          } else {
+            let angleDiff = lines[i].angle - this.playerAngle;
+            if (Math.abs(angleDiff) > 0.01) {
+              this.playerAngle += angleDiff * this.rotationSpeed;
+            }
+          }
+
+          let newX =
+            this.position.x *
+              Math.abs(Math.cos((lines[i].angle * Math.PI) / 180)) -
+            this.position.y *
+              Math.abs(Math.sin((lines[i].angle * Math.PI) / 180));
+          let newY =
+            this.position.x *
+              Math.abs(Math.sin((lines[i].angle * Math.PI) / 180)) +
+            this.position.y *
+              Math.abs(Math.cos((lines[i].angle * Math.PI) / 180));
+
+          this.position.y = newY;
+
+          if (lines[i].angle > 1.1) {
+            this.tooSteepLeft = true;
+          } else if (lines[i].angle < -1.1) {
+            this.tooSteepRight = true;
+          }
+        }
+
+        // Vertical
+        if (
+          (this.position.x + this.size.x >= lines[i].x1 &&
+            this.position.x <= lines[i].x1 &&
+            this.position.y + this.size.y >= lines[i].y1 &&
+            this.position.y <= lines[i].y2 &&
+            lines[i].isDiagonal == false) ||
+          (this.position.x + this.size.x >= lines[i].x2 &&
+            this.position.x <= lines[i].x2 &&
+            this.position.y + this.size.y >= lines[i].y2 &&
+            this.position.y <= lines[i].y1 &&
+            lines[i].isDiagonal == false)
+        ) {
+          this.velocity.x = 0;
+          let playerCenter = this.position.x + this.size.x / 2;
+          if (lines[i].x1 - playerCenter > 0) {
+            this.position.x -= 1;
+          } else {
+            this.position.x += 1;
+          }
+        }
+        c.restore();
       }
     }
   }
@@ -168,7 +311,7 @@ function start() {
             e.clientX - rect.left,
             e.clientY - rect.top,
             "gray",
-            3
+            5
           )
         );
         firstClick = true;
@@ -181,7 +324,7 @@ function start() {
         rememberMouseY2 = mouseY2;
         firstClick = false;
         paths = [];
-        lines.push(new Line(mouseX, mouseY, mouseX2, mouseY2, "black", 3));
+        lines.push(new Line(mouseX, mouseY, mouseX2, mouseY2, "black", 5));
         if (started) {
           lines.pop();
           started = false;
@@ -225,8 +368,8 @@ function start() {
       y: 0,
     },
     size: {
-      x: 50,
-      y: 70,
+      x: 40,
+      y: 60,
     },
     gravity: 0.7,
   });
@@ -419,28 +562,7 @@ function start() {
     } catch (error) {
       // pass
     }
-    for (let i = 0; i < lines.length; i++) {
-      if (
-        player.position.x + player.size.x >= lines[i].x1 &&
-        player.position.x + player.size.x <= lines[i].x2
-      ) {
-        lines[i].hitboxright =
-          lines[i].y1 -
-          (player.position.x + player.size.x - lines[i].x1) *
-            -((lines[i].y2 - lines[i].y1) / (lines[i].x2 - lines[i].x1));
-        console.log(lines[i].hitboxright);
-      }
-      if (
-        player.position.x >= lines[i].x1 &&
-        player.position.x <= lines[i].x2
-      ) {
-        lines[i].hitboxleft =
-          lines[i].y1 -
-          (player.position.x - lines[i].x1) *
-            -((lines[i].y2 - lines[i].y1) / (lines[i].x2 - lines[i].x1));
-        console.log(lines[i].hitboxleft);
-      }
-    }
+
     if (
       player.position.y + player.size.y + player.velocity.y > myCanvas.height ||
       onPlatform
@@ -453,61 +575,28 @@ function start() {
         onPlatform = false;
       }
     }
-
-    for (let i = 0; i < lines.length; i++) {
-      if (
-        (player.position.y + player.size.y + player.velocity.y >= lines[i].y1 &&
-          player.position.y <= lines[i].y1 &&
-          player.position.x + player.size.x >= lines[i].x1 &&
-          player.position.x <= lines[i].x2 &&
-          lines[i].isDiagonal == false) ||
-        (player.position.y + player.size.y + player.velocity.y >= lines[i].y1 &&
-          player.position.y <= lines[i].y1 &&
-          player.position.x + player.size.x >= lines[i].x2 &&
-          player.position.x <= lines[i].x1 &&
-          lines[i].isDiagonal == false)
-      ) {
-        player.velocity.y =
-          lines[i].y1 - 1 - (player.position.y + player.size.y);
-        player.position.y += player.velocity.y;
-        player.velocity.y = 0;
-        onPlatform = true;
-        player.playerAngle = lines[i].angle;
+    if (
+      player.position.y + player.size.y + player.velocity.y > myCanvas.height ||
+      !onPlatform
+    ) {
+      let angleDiff = 0 - player.playerAngle;
+      if (Math.abs(angleDiff) > 0.01) {
+        player.playerAngle += angleDiff * player.rotationSpeed;
       }
-      let hitbox = Math.min(lines[i].hitboxright, lines[i].hitboxleft);
-      if (
-        player.position.y + player.size.y + player.velocity.y >= hitbox &&
-        player.position.y <= hitbox &&
-        player.position.x + player.size.x >= lines[i].x1 &&
-        player.position.x <= lines[i].x2 &&
-        lines[i].isDiagonal == true
-      ) {
-        player.velocity.y = hitbox - 1 - (player.position.y + player.size.y);
-        player.position.y += player.velocity.y;
-        player.velocity.y = 0;
-        onPlatform = true;
-        player.playerAngle = lines[i].angle;
-      }
+    }
 
-      if (
-        (player.position.x + player.size.x >= lines[i].x1 &&
-          player.position.x <= lines[i].x1 &&
-          player.position.y + player.size.y >= lines[i].y1 &&
-          player.position.y <= lines[i].y2 &&
-          lines[i].isDiagonal == false) ||
-        (player.position.x + player.size.x >= lines[i].x2 &&
-          player.position.x <= lines[i].x2 &&
-          player.position.y + player.size.y >= lines[i].y2 &&
-          player.position.y <= lines[i].y1 &&
-          lines[i].isDiagonal == false)
-      ) {
+    if (player.tooSteepLeft) {
+      player.position.x += 2;
+      player.velocity.y = 0;
+      if (aPressed || dPressed) {
         player.velocity.x = 0;
-        let playerCenter = player.position.x + player.size.x / 2;
-        if (lines[i].x1 - playerCenter > 0) {
-          player.position.x -= 1;
-        } else {
-          player.position.x += 1;
-        }
+      }
+    }
+    if (player.tooSteepRight) {
+      player.position.x -= 2;
+      player.velocity.y = 0;
+      if (aPressed || dPressed) {
+        player.velocity.x = 0;
       }
     }
 

@@ -288,6 +288,8 @@ function start() {
   let firstClick = false;
   let lines = [];
   let paths = [];
+  let redo = [];
+  let undo = false;
   if (buildmode.checked) {
     let continuePath = false;
     document.addEventListener("click", (e) => {
@@ -301,8 +303,14 @@ function start() {
           rememberMouseX = mouseX;
           rememberMouseY = mouseY;
         } else {
-          mouseX = mouseX2;
-          mouseY = mouseY2;
+          if (undo) {
+            mouseX = lines[lines.length - 1].x2;
+            mouseY = lines[lines.length - 1].y2;
+            undo = false;
+          } else {
+            mouseX = mouseX2;
+            mouseY = mouseY2;
+          }
         }
         paths.push(
           new Line(
@@ -340,7 +348,26 @@ function start() {
           break;
         case "z":
         case "Z":
-          lines.pop();
+          if (lines.length > 0) {
+            redo.push(lines.pop());
+          }
+          undo = true;
+          break;
+        case "y":
+        case "Y":
+          if (redo.length > 0) {
+            lines.push(
+              new Line(
+                redo[redo.length - 1].x1,
+                redo[redo.length - 1].y1,
+                redo[redo.length - 1].x2,
+                redo[redo.length - 1].y2,
+                "black",
+                5
+              )
+            );
+            redo.pop();
+          }
           break;
       }
     });
@@ -604,7 +631,41 @@ function start() {
     for (let i = 0; i < players.length; i++) {
       players[i].update();
     }
+    if (buildmode.checked) {
+      for (let x = 0; x < myCanvas.width; x += snapDeg) {
+        if (x % snapDeg === 0) {
+          c.strokeStyle = "rgba(0, 0, 0, 0.5)";
+          c.lineWidth = 1;
+          c.beginPath();
+          c.moveTo(x, 0);
+          c.lineTo(x, myCanvas.height);
+          c.stroke();
+        }
+      }
+
+      for (let y = 0; y < myCanvas.height; y += snapDeg) {
+        if (y % snapDeg === 0) {
+          c.beginPath();
+          c.moveTo(0, y);
+          c.lineTo(myCanvas.width, y);
+          c.stroke();
+        }
+      }
+    }
   }
+  cursor = document.getElementById("cursor");
+
+  let canvasRect = myCanvas.getBoundingClientRect();
+
+  document.addEventListener("mousemove", function (event) {
+    let mouseX = event.clientX - canvasRect.left;
+    let mouseY = event.clientY - canvasRect.top;
+    let snappedX = mouseX - (mouseX % snapDeg);
+    let snappedY = mouseY - (mouseY % snapDeg);
+
+    cursor.style.left = snappedX + canvasRect.left + "px";
+    cursor.style.top = snappedY + canvasRect.top + "px";
+  });
 
   socket.emit("loadPlayers");
   socket.on("playerList", (data) => {

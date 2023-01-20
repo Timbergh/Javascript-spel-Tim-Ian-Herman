@@ -19,6 +19,7 @@ body {
   right: 0;
   margin: auto;
   background-color: rgb(77, 77, 77);
+  cursor: none;
 }
 
 #menu {
@@ -105,4 +106,14 @@ form {
 
 #error {
   display: none;
+}
+
+#cursor {
+  position: absolute;
+  cursor: none;
+  font-size: 20px;
+  color: white;
+  left: -10px;
+  top: -10px;
+  z-index: 100;
 }

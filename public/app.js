@@ -5,6 +5,7 @@ let started = false;
 let snapDeg = 20;
 let buildmode = document.getElementById("build");
 color_picker = document.getElementsByClassName("size");
+
 for (let i = 0; i < color_picker.length; i++) {
   color_picker[i].onclick = function () {
     color = color_picker[i].classList[0];
@@ -332,12 +333,25 @@ function start() {
         rememberMouseY2 = mouseY2;
         firstClick = false;
         paths = [];
-        lines.push(new Line(mouseX, mouseY, mouseX2, mouseY2, "black", 5));
         if (started) {
           lines.pop();
           started = false;
         }
         console.log(lines);
+        socket.emit("lineData", {
+          x: mouseX,
+          y: mouseY,
+          x2: mouseX2,
+          y2: mouseY2,
+        });
+      }
+    });
+
+    socket.on("lineList", (data) => {
+      for (let i = 0; i < data.length; i++) {
+        lines.push(
+          new Line(data[i].x, data[i].y, data[i].x2, data[i].y2, "black", 5)
+        );
       }
     });
 
@@ -407,42 +421,10 @@ function start() {
     id = data;
   });
 
-  class OnlinePlayer {
+  class OnlinePlayer extends Player {
     constructor(name, position, velocity, color, size, gravity, id) {
-      this.name = name;
-      this.position = position;
-      this.velocity = velocity;
-      this.color = color;
-      this.size = size;
-      this.gravity = gravity;
+      super({ name, position, velocity, color, size, gravity });
       this.id = id;
-    }
-
-    render() {
-      c.fillStyle = this.color;
-      c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
-      c.fillStyle = "black";
-      c.fillText(this.name, this.position.x + 25, this.position.y - 20);
-    }
-
-    update() {
-      this.render();
-      this.position.x += this.velocity.x;
-      this.position.y += this.velocity.y;
-
-      if (this.position.y + this.size.y + this.velocity.y > myCanvas.height) {
-        this.velocity.y = 0;
-        this.gravity = 0.7;
-      } else {
-        this.velocity.y += this.gravity;
-      }
-      if (
-        this.velocity.y >= -1 &&
-        this.velocity.y <= 1 &&
-        this.velocity.y != 0
-      ) {
-        this.gravity = 2.1;
-      }
     }
   }
 
@@ -581,6 +563,7 @@ function start() {
   function animate() {
     requestAnimationFrame(animate);
     c.clearRect(0, 0, innerWidth, innerHeight);
+
     for (let i = 0; i < lines.length; i++) {
       lines[i].render();
     }
@@ -672,6 +655,13 @@ function start() {
     players_connected = data;
     load();
     animate();
+  });
+  socket.on("lineListLoad", (data) => {
+    for (let i = 0; i < data.length; i++) {
+      lines.push(
+        new Line(data[i].x, data[i].y, data[i].x2, data[i].y2, "black", 5)
+      );
+    }
   });
 
   socket.on("playerJoined", (data) => {

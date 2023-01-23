@@ -10,7 +10,8 @@ app.use(express.static("public"));
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/index.html");
 });
-players_connected = [];
+const players_connected = [];
+const lines = [];
 io.on("connection", (socket) => {
   console.log("a user connected");
 
@@ -51,6 +52,12 @@ io.on("connection", (socket) => {
 
   socket.on("loadPlayers", () => {
     socket.emit("playerList", players_connected);
+    socket.emit("lineListLoad", lines);
+  });
+
+  socket.on("lineData", (data) => {
+    lines.push(data);
+    io.emit("lineList", lines);
   });
 });
 

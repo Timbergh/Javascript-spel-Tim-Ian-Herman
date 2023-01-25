@@ -8,6 +8,12 @@ body {
   background-color: rgb(49, 49, 49);
   --s: 50px; /* size  */
   --m: 4px; /* margin */
+  display: flex;
+  justify-content: center;
+}
+
+.buildBtn {
+  padding: 10px;
 }
 
 #myCanvas {

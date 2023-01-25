@@ -289,12 +289,27 @@ function start() {
     }
   }
 
+  let drawlines = document.getElementById("draw");
+  let selectLines = document.getElementById("mark");
+
+  let draw = true;
+  let select = false;
+
+  drawlines.onclick = function () {
+    draw = true;
+    select = false;
+  };
+  selectLines.onclick = function () {
+    select = true;
+    draw = false;
+  };
+
   let firstClick = false;
   let lines = [];
   let paths = [];
   let redo = [];
   let undo = false;
-  if (buildmode.checked) {
+  if (buildmode.checked && draw) {
     let continuePath = false;
     document.addEventListener("click", (e) => {
       let rect = myCanvas.getBoundingClientRect();

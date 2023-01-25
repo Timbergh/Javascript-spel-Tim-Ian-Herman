@@ -62,14 +62,6 @@ function start() {
       this.isVertical = x1 == x2;
       this.isDiagonal = !(this.isVertical || this.isHorizontal);
       this.angle = 0;
-      this.hitboxright =
-        this.y1 -
-        (player.position.x + player.size.x - this.x1) *
-          -((this.y2 - this.y1) / (this.x2 - this.x1));
-      this.hitboxleft =
-        this.y1 -
-        (player.position.x - this.x1) *
-          -((this.y2 - this.y1) / (this.x2 - this.x1));
     }
 
     render() {
@@ -114,6 +106,16 @@ function start() {
       this.rotationSpeed = 0.1;
       this.tooSteepLeft = false;
       this.tooSteepRight = false;
+      for (let i = 0; i < lines.length; i++) {
+        this.hitboxright =
+          this.y1 -
+          (this.position.x + this.size.x - lines[i].x1) *
+            -((lines[i].y2 - lines[i].y1) / (lines[i].x2 - lines[i].x1));
+        this.hitboxleft =
+          this.y1 -
+          (this.position.x - lines[i].x1) *
+            -((lines[i].y2 - lines[i].y1) / (lines[i].x2 - lines[i].x1));
+      }
     }
 
     render() {
@@ -126,6 +128,8 @@ function start() {
       c.rotate(this.playerAngle);
       c.fillRect(-this.size.x / 2, -this.size.y / 2, this.size.x, this.size.y);
       c.restore();
+      c.fillStyle = "black";
+      c.fillText(this.name, this.position.x + 25, this.position.y - 20);
     }
 
     update() {
@@ -156,13 +160,13 @@ function start() {
           this.position.x + this.size.x >= lines[i].x1 &&
           this.position.x + this.size.x <= lines[i].x2
         ) {
-          lines[i].hitboxright =
+          this.hitboxright =
             lines[i].y1 -
             (this.position.x + this.size.x - lines[i].x1) *
               -((lines[i].y2 - lines[i].y1) / (lines[i].x2 - lines[i].x1));
         }
         if (this.position.x >= lines[i].x1 && this.position.x <= lines[i].x2) {
-          lines[i].hitboxleft =
+          this.hitboxleft =
             lines[i].y1 -
             (this.position.x - lines[i].x1) *
               -((lines[i].y2 - lines[i].y1) / (lines[i].x2 - lines[i].x1));
@@ -192,7 +196,7 @@ function start() {
         }
 
         // Diagonal
-        let hitbox = Math.min(lines[i].hitboxright, lines[i].hitboxleft);
+        let hitbox = Math.min(this.hitboxright, this.hitboxleft);
         if (
           this.position.y + this.size.y + this.velocity.y >= hitbox &&
           this.position.y <= hitbox &&
@@ -200,22 +204,7 @@ function start() {
           this.position.x <= lines[i].x2 &&
           lines[i].isDiagonal == true
         ) {
-          if (lines[i].angle > 0) {
-            if ((lines[i].x1 + lines[i].x2) / 2 - this.position.x < 0) {
-              this.velocity.y = hitbox + 1 - (this.position.y + this.size.y);
-            } else {
-              this.velocity.y =
-                hitbox + 5 * lines[i].angle - (this.position.y + this.size.y);
-            }
-          } else if (
-            lines[i].angle < 0 &&
-            (lines[i].x1 + lines[i].x2) / 2 - this.position.x < 0
-          ) {
-            this.velocity.y = hitbox + 1 - (this.position.y + this.size.y);
-          } else {
-            this.velocity.y =
-              hitbox - 5 * lines[i].angle - (this.position.y + this.size.y);
-          }
+          this.velocity.y = hitbox + 1 - (this.position.y + this.size.y);
           this.position.y += this.velocity.y;
           this.velocity.y = 0;
 
@@ -240,11 +229,6 @@ function start() {
             }
           }
 
-          let newX =
-            this.position.x *
-              Math.abs(Math.cos((lines[i].angle * Math.PI) / 180)) -
-            this.position.y *
-              Math.abs(Math.sin((lines[i].angle * Math.PI) / 180));
           let newY =
             this.position.x *
               Math.abs(Math.sin((lines[i].angle * Math.PI) / 180)) +
@@ -259,8 +243,19 @@ function start() {
             this.tooSteepRight = true;
           }
         }
-
-        // Vertical
+        let hitboxup = Math.max(this.hitboxright, this.hitboxleft);
+        if (
+          this.position.y + this.velocity.y <= hitboxup &&
+          this.position.y >= hitboxup &&
+          this.position.x + this.size.x >= lines[i].x1 &&
+          this.position.x <= lines[i].x2 &&
+          lines[i].isDiagonal == true
+        ) {
+          console.log(hitboxup);
+          this.velocity.y = -(this.position.y - hitboxup - lines[i].width);
+          this.position.y += this.velocity.y;
+          this.velocity.y = 0;
+        }
         if (
           (this.position.x + this.size.x >= lines[i].x1 &&
             this.position.x <= lines[i].x1 &&
@@ -273,6 +268,7 @@ function start() {
             this.position.y <= lines[i].y1 &&
             lines[i].isDiagonal == false)
         ) {
+          // Vertical
           this.velocity.x = 0;
           let playerCenter = this.position.x + this.size.x / 2;
           if (lines[i].x1 - playerCenter > 0) {
@@ -283,6 +279,13 @@ function start() {
         }
         c.restore();
       }
+    }
+  }
+
+  class OnlinePlayer extends Player {
+    constructor(name, position, velocity, color, size, gravity, id) {
+      super({ name, position, velocity, color, size, gravity });
+      this.id = id;
     }
   }
 
@@ -348,10 +351,16 @@ function start() {
     });
 
     socket.on("lineList", (data) => {
+      lines = [];
       for (let i = 0; i < data.length; i++) {
         lines.push(
           new Line(data[i].x, data[i].y, data[i].x2, data[i].y2, "black", 5)
         );
+      }
+    });
+    socket.on("undoLine", () => {
+      if (lines > 0) {
+        lines.pop();
       }
     });
 
@@ -362,9 +371,7 @@ function start() {
           break;
         case "z":
         case "Z":
-          if (lines.length > 0) {
-            redo.push(lines.pop());
-          }
+          socket.emit("lineUndo");
           undo = true;
           break;
         case "y":
@@ -420,13 +427,6 @@ function start() {
   socket.on("idToClient", (data) => {
     id = data;
   });
-
-  class OnlinePlayer extends Player {
-    constructor(name, position, velocity, color, size, gravity, id) {
-      super({ name, position, velocity, color, size, gravity });
-      this.id = id;
-    }
-  }
 
   let aPressed = false;
   let dPressed = false;

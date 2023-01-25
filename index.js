@@ -59,6 +59,11 @@ io.on("connection", (socket) => {
     lines.push(data);
     io.emit("lineList", lines);
   });
+
+  socket.on("lineUndo", () => {
+    lines.pop();
+    io.emit("undoLine", lines);
+  });
 });
 
 // HAMACHI

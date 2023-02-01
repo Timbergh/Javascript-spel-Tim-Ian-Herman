@@ -108,12 +108,13 @@ function start() {
     renderSelectors() {
       c.strokeStyle = this.color;
       c.fillStyle = "transparent";
-      c.fillRect(
-        this.x1 - (this.x1 % snapDeg),
-        this.y1 - (this.y1 % snapDeg),
-        this.x2 - this.x1 - ((this.x2 - this.x1) % snapDeg),
-        this.y2 - this.y1 - ((this.y2 - this.y1) % snapDeg)
-      );
+      c.beginPath();
+      c.moveTo(this.x1 - (this.x1 % snapDeg), this.y1 - (this.y1 % snapDeg));
+      c.lineTo(this.x2 - (this.x2 % snapDeg), this.y1 - (this.y1 % snapDeg));
+      c.lineTo(this.x2 - (this.x2 % snapDeg), this.y2 - (this.y2 % snapDeg));
+      c.lineTo(this.x1 - (this.x1 % snapDeg), this.y2 - (this.y2 % snapDeg));
+      c.lineTo(this.x1 - (this.x1 % snapDeg), this.y1 - (this.x1 % snapDeg));
+      c.stroke();
     }
   }
 
@@ -716,7 +717,7 @@ function start() {
     for (let i = 0; i < players.length; i++) {
       players[i].update();
     }
-    console.log(chatters);
+    // console.log(chatters);
     if (chatters.length > 0) {
       for (let i = 0; i < chatters.length; i++) {
         for (let j = 0; j < players_connected.length; j++) {

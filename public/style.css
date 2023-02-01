@@ -123,3 +123,10 @@ form {
   top: -10px;
   z-index: 100;
 }
+
+#message {
+  display: none;
+  position: absolute;
+  top: 500px;
+  left: 500px;
+}

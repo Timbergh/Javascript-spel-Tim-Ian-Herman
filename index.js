@@ -31,6 +31,17 @@ io.on("connection", (socket) => {
     socket.emit("idToClient", socket.id);
     console.log(players_connected);
   });
+
+  socket.on("OnlineMessage", (data) => {
+    for (let i = 0; i < players_connected.length; i++) {
+      if (players_connected[i][1] == socket.id) {
+        socket.broadcast.emit("MessageReceived", [
+          data,
+          players_connected[i][1],
+        ]);
+      }
+    }
+  });
   socket.on("playerMovementX", (data) => {
     socket.broadcast.emit("OnlinePlayerPosX", data);
   });

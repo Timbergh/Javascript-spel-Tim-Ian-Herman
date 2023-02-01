@@ -3,9 +3,11 @@ let first = false;
 let second = false;
 let started = false;
 let snapDeg = 20;
+let chat = false;
+let chatters = [];
 let buildmode = document.getElementById("build");
 color_picker = document.getElementsByClassName("size");
-
+let cursor = document.getElementById("cursor");
 for (let i = 0; i < color_picker.length; i++) {
   color_picker[i].onclick = function () {
     color = color_picker[i].classList[0];
@@ -42,13 +44,15 @@ for (let i = 0; i < color_picker.length; i++) {
 function start() {
   let socket = io();
   window.focus;
+  let message = document.getElementById("message");
   let myCanvas = document.getElementById("myCanvas");
   let c = myCanvas.getContext("2d");
   myCanvas.width = 960;
   myCanvas.height = 540;
   c.font = "20px Arial";
-  c.textAlign = "center";
+  c.textalign = "center";
   menu = document.getElementById("menu");
+  message.style.top = myCanvas.height;
 
   class Line {
     constructor(x1, y1, x2, y2, lineColor, width) {
@@ -90,6 +94,26 @@ function start() {
       c.lineWidth = this.width;
       c.strokeStyle = this.lineColor;
       c.stroke();
+    }
+  }
+
+  class Selector {
+    constructor(x1, y1, x2, y2, color) {
+      this.x1 = x1;
+      this.y1 = y1;
+      this.x2 = x2;
+      this.y2 = y2;
+      this.color = color;
+    }
+    renderSelectors() {
+      c.strokeStyle = this.color;
+      c.fillStyle = "transparent";
+      c.fillRect(
+        this.x1 - (this.x1 % snapDeg),
+        this.y1 - (this.y1 % snapDeg),
+        this.x2 - this.x1 - ((this.x2 - this.x1) % snapDeg),
+        this.y2 - this.y1 - ((this.y2 - this.y1) % snapDeg)
+      );
     }
   }
 
@@ -252,9 +276,10 @@ function start() {
           lines[i].isDiagonal == true
         ) {
           console.log(hitboxup);
-          this.velocity.y = -(this.position.y - hitboxup - lines[i].width);
+          this.velocity.y = -(this.position.y - hitboxup - lines[i].width - 1);
           this.position.y += this.velocity.y;
           this.velocity.y = 0;
+          this.velocity.x = 0;
         }
         if (
           (this.position.x + this.size.x >= lines[i].x1 &&
@@ -296,72 +321,102 @@ function start() {
   let select = false;
 
   drawlines.onclick = function () {
-    draw = true;
-    select = false;
+    return (draw = true), (select = false);
   };
   selectLines.onclick = function () {
-    select = true;
-    draw = false;
+    return (draw = false), (select = true);
   };
 
   let firstClick = false;
   let lines = [];
   let paths = [];
+  let selectors = [];
   let redo = [];
   let undo = false;
-  if (buildmode.checked && draw) {
+  let rect = myCanvas.getBoundingClientRect();
+
+  if (buildmode.checked) {
     let continuePath = false;
     document.addEventListener("click", (e) => {
-      let rect = myCanvas.getBoundingClientRect();
-      if (!firstClick) {
-        if (!continuePath) {
-          mouseX = e.clientX - rect.left;
-          mouseY = e.clientY - rect.top;
-          mouseX = mouseX - (mouseX % snapDeg);
-          mouseY = mouseY - (mouseY % snapDeg);
-          rememberMouseX = mouseX;
-          rememberMouseY = mouseY;
-        } else {
-          if (undo) {
-            mouseX = lines[lines.length - 1].x2;
-            mouseY = lines[lines.length - 1].y2;
-            undo = false;
+      if (
+        e.clientX > rect.left - 1 &&
+        e.clientX < rect.left + myCanvas.width + 10 &&
+        e.clientY > rect.top - 1 &&
+        e.clientY < rect.top + myCanvas.height + 10
+      ) {
+        if (draw) {
+          if (!firstClick) {
+            if (!continuePath) {
+              mouseX = e.clientX - rect.left;
+              mouseY = e.clientY - rect.top;
+              mouseX = mouseX - (mouseX % snapDeg);
+              mouseY = mouseY - (mouseY % snapDeg);
+              rememberMouseX = mouseX;
+              rememberMouseY = mouseY;
+            } else {
+              if (undo) {
+                mouseX = lines[lines.length - 1].x2;
+                mouseY = lines[lines.length - 1].y2;
+                undo = false;
+              } else {
+                mouseX = mouseX2;
+                mouseY = mouseY2;
+              }
+            }
+            paths.push(
+              new Line(
+                mouseX,
+                mouseY,
+                e.clientX - rect.left,
+                e.clientY - rect.top,
+                "gray",
+                5
+              )
+            );
+            firstClick = true;
           } else {
-            mouseX = mouseX2;
-            mouseY = mouseY2;
+            mouseX2 = e.clientX - rect.left;
+            mouseY2 = e.clientY - rect.top;
+            mouseX2 = mouseX2 - (mouseX2 % snapDeg);
+            mouseY2 = mouseY2 - (mouseY2 % snapDeg);
+            rememberMouseX2 = mouseX2;
+            rememberMouseY2 = mouseY2;
+            firstClick = false;
+            paths = [];
+            if (started) {
+              lines.pop();
+              started = false;
+            }
+            console.log(lines);
+            socket.emit("lineData", {
+              x: mouseX,
+              y: mouseY,
+              x2: mouseX2,
+              y2: mouseY2,
+            });
+          }
+        } else if (select) {
+          if (!firstClick) {
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+            mouseX = mouseX - (mouseX % snapDeg);
+            mouseY = mouseY - (mouseY % snapDeg);
+            firstClick = true;
+          } else {
+            selectors = [];
+            selectors.push(
+              new Selector(
+                mouseX,
+                mouseY,
+                e.clientX - rect.left,
+                e.clientY - rect.top,
+                "white"
+              )
+            );
+            firstClick = false;
+            console.log(selectors);
           }
         }
-        paths.push(
-          new Line(
-            mouseX,
-            mouseY,
-            e.clientX - rect.left,
-            e.clientY - rect.top,
-            "gray",
-            5
-          )
-        );
-        firstClick = true;
-      } else {
-        mouseX2 = e.clientX - rect.left;
-        mouseY2 = e.clientY - rect.top;
-        mouseX2 = mouseX2 - (mouseX2 % snapDeg);
-        mouseY2 = mouseY2 - (mouseY2 % snapDeg);
-        rememberMouseX2 = mouseX2;
-        rememberMouseY2 = mouseY2;
-        firstClick = false;
-        paths = [];
-        if (started) {
-          lines.pop();
-          started = false;
-        }
-        console.log(lines);
-        socket.emit("lineData", {
-          x: mouseX,
-          y: mouseY,
-          x2: mouseX2,
-          y2: mouseY2,
-        });
       }
     });
 
@@ -447,6 +502,19 @@ function start() {
   let dPressed = false;
   let upPressed = false;
 
+  function chatBubble(x, y, text) {
+    c.beginPath();
+    c.strokeStyle = "black";
+    c.lineWidth = "2";
+    c.moveTo(x + player.size.x / 2, y - 10);
+    c.lineTo(x + player.size.x, y - 25);
+    c.lineTo(x + player.size.x / 2 + 75, y - 25);
+    c.lineTo(x + player.size.x / 2 + 75, y - 50);
+    c.lineTo(x + player.size.x / 2 - 75, y - 50);
+    c.lineTo(x + player.size.x / 2 - 75, y - 25);
+    c.lineTo(x, y - 25);
+    c.lineTo(x + player.size.x / 2, y - 10);
+  }
   document.addEventListener("keydown", (e) => {
     switch (e.key) {
       case "a":
@@ -468,6 +536,19 @@ function start() {
       case " ":
         upPressed = true;
         break;
+      case "Enter":
+        if (chat == true) {
+          input = document.getElementById("message").value;
+          message.style.display = "none";
+          chat = false;
+          console.log(input);
+          socket.emit("OnlineMessage", input);
+        } else {
+          message.style.bottom = rect.top + "px";
+          message.style.left = rect.left + "px";
+          message.style.display = "block";
+          chat = true;
+        }
     }
   });
 
@@ -564,7 +645,6 @@ function start() {
   }
 
   document.addEventListener("mousemove", (e) => {
-    let rect = myCanvas.getBoundingClientRect();
     try {
       paths[0].x2 = e.clientX - rect.left;
       paths[0].y2 = e.clientY - rect.top;
@@ -578,12 +658,19 @@ function start() {
   function animate() {
     requestAnimationFrame(animate);
     c.clearRect(0, 0, innerWidth, innerHeight);
+    // selector.renderSelectors();
 
     for (let i = 0; i < lines.length; i++) {
       lines[i].render();
     }
     try {
       paths[0].renderPath();
+      selectors[0].renderSelectors();
+    } catch (error) {
+      // pass
+    }
+    try {
+      selectors[0].renderSelectors();
     } catch (error) {
       // pass
     }
@@ -629,6 +716,20 @@ function start() {
     for (let i = 0; i < players.length; i++) {
       players[i].update();
     }
+    console.log(chatters);
+    if (chatters.length > 0) {
+      for (let i = 0; i < chatters.length; i++) {
+        for (let j = 0; j < players_connected.length; j++) {
+          if (i[1] == players_connected[j][1]) {
+            chatBubble(
+              players_connected[j][0].position.y,
+              players_connected[j][0].position.x,
+              i[0]
+            );
+          }
+        }
+      }
+    }
     if (buildmode.checked) {
       for (let x = 0; x < myCanvas.width; x += snapDeg) {
         if (x % snapDeg === 0) {
@@ -651,18 +752,25 @@ function start() {
       }
     }
   }
-  cursor = document.getElementById("cursor");
 
-  let canvasRect = myCanvas.getBoundingClientRect();
-
-  document.addEventListener("mousemove", function (event) {
-    let mouseX = event.clientX - canvasRect.left;
-    let mouseY = event.clientY - canvasRect.top;
+  document.addEventListener("mousemove", function (e) {
+    let mouseX = e.clientX - rect.left;
+    let mouseY = e.clientY - rect.top;
     let snappedX = mouseX - (mouseX % snapDeg);
     let snappedY = mouseY - (mouseY % snapDeg);
 
-    cursor.style.left = snappedX + canvasRect.left + "px";
-    cursor.style.top = snappedY + canvasRect.top + "px";
+    cursor.style.left = snappedX + rect.left + "px";
+    cursor.style.top = snappedY + rect.top + "px";
+    if (
+      e.clientX > rect.left - 1 &&
+      e.clientX < rect.left + myCanvas.width + 10 &&
+      e.clientY > rect.top - 1 &&
+      e.clientY < rect.top + myCanvas.height + 10
+    ) {
+      cursor.style.visibility = "visible";
+    } else {
+      cursor.style.visibility = "hidden";
+    }
   });
 
   socket.emit("loadPlayers");
@@ -700,6 +808,9 @@ function start() {
         break;
       }
     }
+  });
+  socket.on("MessageReceived", (data) => {
+    chatters.push([data[0], data[1]]);
   });
 }
 

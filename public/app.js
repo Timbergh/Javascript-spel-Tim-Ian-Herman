@@ -332,6 +332,7 @@ function start() {
   let lines = [];
   let paths = [];
   let selectors = [];
+  let selectorPath = [];
   let redo = [];
   let undo = false;
   let rect = myCanvas.getBoundingClientRect();
@@ -396,27 +397,57 @@ function start() {
               y2: mouseY2,
             });
           }
-        } else if (select) {
-          if (!firstClick) {
-            mouseX = e.clientX - rect.left;
-            mouseY = e.clientY - rect.top;
-            mouseX = mouseX - (mouseX % snapDeg);
-            mouseY = mouseY - (mouseY % snapDeg);
-            firstClick = true;
-          } else {
-            selectors = [];
-            selectors.push(
-              new Selector(
-                mouseX,
-                mouseY,
-                e.clientX - rect.left,
-                e.clientY - rect.top,
-                "white"
-              )
-            );
-            firstClick = false;
-            console.log(selectors);
-          }
+        }
+      }
+    });
+
+    document.addEventListener("mousedown", (e) => {
+      if (
+        e.clientX > rect.left - 1 &&
+        e.clientX < rect.left + myCanvas.width + 10 &&
+        e.clientY > rect.top - 1 &&
+        e.clientY < rect.top + myCanvas.height + 10
+      ) {
+        if (select) {
+          mouseX = e.clientX - rect.left;
+          mouseY = e.clientY - rect.top;
+          mouseX = mouseX - (mouseX % snapDeg);
+          mouseY = mouseY - (mouseY % snapDeg);
+
+          selectorPath.push(
+            new Selector(
+              mouseX,
+              mouseY,
+              e.clientX - rect.left,
+              e.clientY - rect.top,
+              "gray"
+            )
+          );
+          console.log(selectorPath);
+        }
+      }
+    });
+
+    document.addEventListener("mouseup", (e) => {
+      if (
+        e.clientX > rect.left - 1 &&
+        e.clientX < rect.left + myCanvas.width + 10 &&
+        e.clientY > rect.top - 1 &&
+        e.clientY < rect.top + myCanvas.height + 10
+      ) {
+        if (select) {
+          mouseX2 = e.clientX - rect.left;
+          mouseY2 = e.clientY - rect.top;
+          mouseX2 = mouseX2 - (mouseX % snapDeg);
+          mouseY2 = mouseY2 - (mouseY % snapDeg);
+
+          selectorPath = [];
+          selectors = [];
+          selectors.push(
+            new Selector(mouseX, mouseY, mouseX2, mouseY2, "white")
+          );
+
+          console.log(selectors);
         }
       }
     });
@@ -503,10 +534,9 @@ function start() {
   let dPressed = false;
   let upPressed = false;
 
-  function chatBubble(x, y, text) {
+  function chatBubble(y, x, text) {
     c.beginPath();
-    c.strokeStyle = "black";
-    c.lineWidth = "2";
+    c.lineWidth = "4";
     c.moveTo(x + player.size.x / 2, y - 10);
     c.lineTo(x + player.size.x, y - 25);
     c.lineTo(x + player.size.x / 2 + 75, y - 25);
@@ -515,6 +545,14 @@ function start() {
     c.lineTo(x + player.size.x / 2 - 75, y - 25);
     c.lineTo(x, y - 25);
     c.lineTo(x + player.size.x / 2, y - 10);
+    c.closePath();
+    c.fillStyle = "white";
+    c.fill();
+    c.font = "15px Arial";
+    c.fillStyle = "black";
+    c.fillText(text, x - 40, y - 32);
+    c.strokeStyle = "black";
+    c.stroke();
   }
   document.addEventListener("keydown", (e) => {
     switch (e.key) {
@@ -656,22 +694,27 @@ function start() {
 
   let onPlatform = false;
 
+  let lisa = [];
+
   function animate() {
     requestAnimationFrame(animate);
     c.clearRect(0, 0, innerWidth, innerHeight);
-    // selector.renderSelectors();
 
     for (let i = 0; i < lines.length; i++) {
       lines[i].render();
     }
     try {
       paths[0].renderPath();
-      selectors[0].renderSelectors();
     } catch (error) {
       // pass
     }
     try {
       selectors[0].renderSelectors();
+    } catch (error) {
+      // pass
+    }
+    try {
+      selectorPath[0].renderSelectors();
     } catch (error) {
       // pass
     }
@@ -717,16 +760,30 @@ function start() {
     for (let i = 0; i < players.length; i++) {
       players[i].update();
     }
-    // console.log(chatters);
     if (chatters.length > 0) {
       for (let i = 0; i < chatters.length; i++) {
-        for (let j = 0; j < players_connected.length; j++) {
-          if (i[1] == players_connected[j][1]) {
+        for (let j = 0; j < players.length; j++) {
+          if (chatters[i][1] == players[j].id) {
             chatBubble(
-              players_connected[j][0].position.y,
-              players_connected[j][0].position.x,
-              i[0]
+              players[j].position.y,
+              players[j].position.x,
+              chatters[i][0]
             );
+            if (lisa.length < lisa.length + 1)
+              lisa = setTimeout(() => {
+                for (let i = 0; i < chatters.length; i++) {
+                  if (chatters[i][1] == players[j].id) {
+                    sak = i;
+                    break;
+                  }
+                }
+                console.log(sak);
+                chatters.splice(sak, 1);
+                for (let i = 0; i < lisa.length; i++) {
+                  clearTimeout(lisa[i]);
+                  lisa.splice(i, 1);
+                }
+              }, 2000);
           }
         }
       }
@@ -753,7 +810,6 @@ function start() {
       }
     }
   }
-
   document.addEventListener("mousemove", function (e) {
     let mouseX = e.clientX - rect.left;
     let mouseY = e.clientY - rect.top;

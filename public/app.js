@@ -128,7 +128,7 @@ function start() {
       this.gravity = gravity;
       this.walkingDiagonal = false;
       this.playerAngle = 0;
-      this.rotationSpeed = 0.1;
+      this.rotationSpeed = 0;
       this.tooSteepLeft = false;
       this.tooSteepRight = false;
       for (let i = 0; i < lines.length; i++) {
@@ -145,14 +145,14 @@ function start() {
 
     render() {
       c.fillStyle = this.color;
-      c.save();
-      c.translate(
-        this.position.x + this.size.x / 2,
-        this.position.y + this.size.y / 2
-      );
-      c.rotate(this.playerAngle);
-      c.fillRect(-this.size.x / 2, -this.size.y / 2, this.size.x, this.size.y);
-      c.restore();
+      // c.save();
+      // c.translate(
+      //   this.position.x + this.size.x / 2,
+      //   this.position.y + this.size.y / 2
+      // );
+      // c.rotate(this.playerAngle);
+      c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
+      // c.restore();
       c.fillStyle = "black";
       c.fillText(this.name, this.position.x + 25, this.position.y - 20);
     }
@@ -189,15 +189,28 @@ function start() {
             lines[i].y1 -
             (this.position.x + this.size.x - lines[i].x1) *
               -((lines[i].y2 - lines[i].y1) / (lines[i].x2 - lines[i].x1));
+        } else {
+          this.hitboxright = "";
         }
         if (this.position.x >= lines[i].x1 && this.position.x <= lines[i].x2) {
           this.hitboxleft =
             lines[i].y1 -
             (this.position.x - lines[i].x1) *
               -((lines[i].y2 - lines[i].y1) / (lines[i].x2 - lines[i].x1));
+        } else {
+          this.hitboxleft = "";
         }
 
-        // Horizontal
+        // Horizontal && diagonal
+        let hitbox = "";
+        let hitboxup = Math.max(this.hitboxright, this.hitboxleft);
+        if (this.hitboxright != "" && this.hitboxleft != "") {
+          hitbox = Math.min(this.hitboxright, this.hitboxleft);
+        } else if (this.hitboxright == "") {
+          hitbox = this.hitboxleft;
+        } else if (this.hitboxleft == "") {
+          hitbox = this.hitboxright;
+        }
         if (
           (this.position.y + this.size.y + this.velocity.y >= lines[i].y1 &&
             this.position.y <= lines[i].y1 &&
@@ -208,51 +221,31 @@ function start() {
             this.position.y <= lines[i].y1 &&
             this.position.x + this.size.x >= lines[i].x2 &&
             this.position.x <= lines[i].x1 &&
-            lines[i].isDiagonal == false)
+            lines[i].isDiagonal == false) ||
+          (this.position.y + this.size.y + this.velocity.y >= hitbox &&
+            this.position.y <= hitbox &&
+            this.position.x + this.size.x >= lines[i].x1 &&
+            this.position.x <= lines[i].x2 &&
+            lines[i].isDiagonal) ||
+          (lines[i].isVertical &&
+            this.position.y + this.size.y + this.velocity.y >=
+              Math.min(lines[i].y1, lines[i].y2) &&
+            this.position.y <= Math.min(lines[i].y1, lines[i].y2) &&
+            this.position.x + this.size.x >= lines[i].x1 &&
+            this.position.x <= lines[i].x1)
         ) {
-          this.velocity.y = lines[i].y1 - 1 - (this.position.y + this.size.y);
+          if (lines[i].isHorizontal) {
+            this.velocity.y = lines[i].y1 - (this.position.y + this.size.y);
+          } else if (lines[i].isDiagonal) {
+            this.velocity.y = hitbox - (this.position.y + this.size.y);
+          } else if (lines[i].isVertical) {
+            this.velocity.y =
+              Math.min(lines[i].y1, lines[i].y2) -
+              (this.position.y + this.size.y);
+          }
           this.position.y += this.velocity.y;
           this.velocity.y = 0;
           onPlatform = true;
-          let angleDiff = lines[i].angle - this.playerAngle;
-          if (Math.abs(angleDiff) > 0.01) {
-            this.playerAngle += angleDiff * this.rotationSpeed;
-          }
-        }
-
-        // Diagonal
-        let hitbox = Math.min(this.hitboxright, this.hitboxleft);
-        if (
-          this.position.y + this.size.y + this.velocity.y >= hitbox &&
-          this.position.y <= hitbox &&
-          this.position.x + this.size.x >= lines[i].x1 &&
-          this.position.x <= lines[i].x2 &&
-          lines[i].isDiagonal == true
-        ) {
-          this.velocity.y = hitbox + 1 - (this.position.y + this.size.y);
-          this.position.y += this.velocity.y;
-          this.velocity.y = 0;
-
-          onPlatform = true;
-          if (
-            lines[i].angle < 0 &&
-            this.position.x + this.size.x >= lines[i].x2
-          ) {
-            let angleDiff = 0 - this.playerAngle;
-            if (Math.abs(angleDiff) > 0.01) {
-              this.playerAngle += angleDiff * this.rotationSpeed;
-            }
-          } else if (lines[i].angle > 0 && this.position.x <= lines[i].x1) {
-            let angleDiff = 0 - this.playerAngle;
-            if (Math.abs(angleDiff) > 0.01) {
-              this.playerAngle += angleDiff * this.rotationSpeed;
-            }
-          } else {
-            let angleDiff = lines[i].angle - this.playerAngle;
-            if (Math.abs(angleDiff) > 0.01) {
-              this.playerAngle += angleDiff * this.rotationSpeed;
-            }
-          }
 
           let newY =
             this.position.x *
@@ -262,17 +255,54 @@ function start() {
 
           this.position.y = newY;
 
-          if (lines[i].angle > 1.1) {
-            this.tooSteepLeft = true;
-          } else if (lines[i].angle < -1.1) {
-            this.tooSteepRight = true;
+          let angleDiff = lines[i].angle - this.playerAngle;
+          if (Math.abs(angleDiff) > 0.01) {
+            this.playerAngle += angleDiff * this.rotationSpeed;
           }
+          // Diagonal above
+          // if (
+          //   this.position.y + this.size.y + this.velocity.y >= hitbox &&
+          //   this.position.y <= hitbox &&
+          //   this.position.x + this.size.x >= lines[i].x1 &&
+          //   this.position.x <= lines[i].x2 &&
+          //   lines[i].isDiagonal == true
+          // ) {
+          //   this.velocity.y =
+          //     hitbox - lines[i].width - (this.position.y + this.size.y);
+          //   this.position.y += this.velocity.y;
+          //   this.velocity.y = 0;
+
+          //   onPlatform = true;
+          // if (
+          //   lines[i].angle < 0 &&
+          //   this.position.x + this.size.x >= lines[i].x2
+          // ) {
+          //   let angleDiff = 0 - this.playerAngle;
+          //   if (Math.abs(angleDiff) > 0.01) {
+          //     this.playerAngle += angleDiff * this.rotationSpeed;
+          //   }
+          // } else if (lines[i].angle > 0 && this.position.x <= lines[i].x1) {
+          //   let angleDiff = 0 - this.playerAngle;
+          //   if (Math.abs(angleDiff) > 0.01) {
+          //     this.playerAngle += angleDiff * this.rotationSpeed;
+          //   }
+          // } else {
+          //   let angleDiff = lines[i].angle - this.playerAngle;
+          //   if (Math.abs(angleDiff) > 0.01) {
+          //     this.playerAngle += angleDiff * this.rotationSpeed;
+          //   }
+          // }
+
+          // if (lines[i].angle > 1.1) {
+          //   this.tooSteepLeft = true;
+          // } else if (lines[i].angle < -1.1) {
+          //   this.tooSteepRight = true;
+          // }
         }
-        let hitboxup = Math.max(this.hitboxright, this.hitboxleft);
         if (
           this.position.y + this.velocity.y <= hitboxup &&
           this.position.y >= hitboxup &&
-          this.position.x + this.size.x >= lines[i].x1 &&
+          this.position.x + this.size.x + this.velocity.x >= lines[i].x1 &&
           this.position.x <= lines[i].x2 &&
           lines[i].isDiagonal == true
         ) {
@@ -280,7 +310,6 @@ function start() {
           this.velocity.y = -(this.position.y - hitboxup - lines[i].width - 1);
           this.position.y += this.velocity.y;
           this.velocity.y = 0;
-          this.velocity.x = 0;
         }
         if (
           (this.position.x + this.size.x >= lines[i].x1 &&

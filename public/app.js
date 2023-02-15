@@ -1,10 +1,10 @@
 let color = "";
 let first = false;
 let second = false;
-let started = false;
 let snapDeg = 20;
 let chat = false;
 let chatters = [];
+let started = false;
 let buildmode = document.getElementById("build");
 color_picker = document.getElementsByClassName("size");
 let cursor = document.getElementById("cursor");
@@ -131,6 +131,7 @@ function start() {
       this.rotationSpeed = 0;
       this.tooSteepLeft = false;
       this.tooSteepRight = false;
+      this.onPlatform = false;
       for (let i = 0; i < lines.length; i++) {
         this.hitboxright =
           this.y1 -
@@ -212,32 +213,41 @@ function start() {
           hitbox = this.hitboxright;
         }
         if (
+          (lines[i].isVertical &&
+            this.position.y + this.size.y + this.velocity.y >=
+              Math.min(lines[i].y1, lines[i].y2) &&
+            this.position.y + this.size.y <=
+              Math.min(lines[i].y1, lines[i].y2) &&
+            this.position.x + this.size.x >= lines[i].x1 &&
+            this.position.x <= lines[i].x1) ||
           (this.position.y + this.size.y + this.velocity.y >= lines[i].y1 &&
             this.position.y <= lines[i].y1 &&
             this.position.x + this.size.x >= lines[i].x1 &&
             this.position.x <= lines[i].x2 &&
-            lines[i].isDiagonal == false) ||
+            lines[i].isDiagonal == false &&
+            lines[i].isVertical == false) ||
           (this.position.y + this.size.y + this.velocity.y >= lines[i].y1 &&
             this.position.y <= lines[i].y1 &&
             this.position.x + this.size.x >= lines[i].x2 &&
             this.position.x <= lines[i].x1 &&
-            lines[i].isDiagonal == false) ||
+            lines[i].isDiagonal == false &&
+            lines[i].isVertical == false) ||
           (this.position.y + this.size.y + this.velocity.y >= hitbox &&
             this.position.y <= hitbox &&
             this.position.x + this.size.x >= lines[i].x1 &&
             this.position.x <= lines[i].x2 &&
-            lines[i].isDiagonal) ||
-          (lines[i].isVertical &&
-            this.position.y + this.size.y + this.velocity.y >=
-              Math.min(lines[i].y1, lines[i].y2) &&
-            this.position.y <= Math.min(lines[i].y1, lines[i].y2) &&
-            this.position.x + this.size.x >= lines[i].x1 &&
-            this.position.x <= lines[i].x1)
+            lines[i].isDiagonal)
         ) {
           if (lines[i].isHorizontal) {
             this.velocity.y = lines[i].y1 - (this.position.y + this.size.y);
           } else if (lines[i].isDiagonal) {
             this.velocity.y = hitbox - (this.position.y + this.size.y);
+            // let newY =
+            //   this.position.x *
+            //     Math.abs(Math.sin((lines[i].angle * Math.PI) / 180)) +
+            //   this.position.y *
+            //     Math.abs(Math.cos((lines[i].angle * Math.PI) / 180));
+            // this.position.y = newY;
           } else if (lines[i].isVertical) {
             this.velocity.y =
               Math.min(lines[i].y1, lines[i].y2) -
@@ -245,15 +255,7 @@ function start() {
           }
           this.position.y += this.velocity.y;
           this.velocity.y = 0;
-          onPlatform = true;
-
-          let newY =
-            this.position.x *
-              Math.abs(Math.sin((lines[i].angle * Math.PI) / 180)) +
-            this.position.y *
-              Math.abs(Math.cos((lines[i].angle * Math.PI) / 180));
-
-          this.position.y = newY;
+          this.onPlatform = true;
 
           let angleDiff = lines[i].angle - this.playerAngle;
           if (Math.abs(angleDiff) > 0.01) {
@@ -272,7 +274,7 @@ function start() {
           //   this.position.y += this.velocity.y;
           //   this.velocity.y = 0;
 
-          //   onPlatform = true;
+          //   this.onPlatform = true;
           // if (
           //   lines[i].angle < 0 &&
           //   this.position.x + this.size.x >= lines[i].x2
@@ -306,7 +308,6 @@ function start() {
           this.position.x <= lines[i].x2 &&
           lines[i].isDiagonal == true
         ) {
-          console.log(hitboxup);
           this.velocity.y = -(this.position.y - hitboxup - lines[i].width - 1);
           this.position.y += this.velocity.y;
           this.velocity.y = 0;
@@ -314,23 +315,17 @@ function start() {
         if (
           (this.position.x + this.size.x >= lines[i].x1 &&
             this.position.x <= lines[i].x1 &&
-            this.position.y + this.size.y >= lines[i].y1 &&
-            this.position.y <= lines[i].y2 &&
+            this.position.y + this.size.y > lines[i].y1 &&
+            this.position.y < lines[i].y2 &&
             lines[i].isDiagonal == false) ||
           (this.position.x + this.size.x >= lines[i].x2 &&
             this.position.x <= lines[i].x2 &&
-            this.position.y + this.size.y >= lines[i].y2 &&
-            this.position.y <= lines[i].y1 &&
+            this.position.y + this.size.y > lines[i].y2 &&
+            this.position.y < lines[i].y1 &&
             lines[i].isDiagonal == false)
         ) {
           // Vertical
           this.velocity.x = 0;
-          let playerCenter = this.position.x + this.size.x / 2;
-          if (lines[i].x1 - playerCenter > 0) {
-            this.position.x -= 1;
-          } else {
-            this.position.x += 1;
-          }
         }
         c.restore();
       }
@@ -375,7 +370,7 @@ function start() {
         e.clientY > rect.top - 1 &&
         e.clientY < rect.top + myCanvas.height + 10
       ) {
-        if (draw) {
+        if (draw && started) {
           if (!firstClick) {
             if (!continuePath) {
               mouseX = e.clientX - rect.left;
@@ -414,11 +409,8 @@ function start() {
             rememberMouseY2 = mouseY2;
             firstClick = false;
             paths = [];
-            if (started) {
-              lines.pop();
-              started = false;
-            }
             console.log(lines);
+
             socket.emit("lineData", {
               x: mouseX,
               y: mouseY,
@@ -721,8 +713,6 @@ function start() {
     }
   });
 
-  let onPlatform = false;
-
   let lisa = [];
 
   function animate() {
@@ -750,19 +740,19 @@ function start() {
 
     if (
       player.position.y + player.size.y + player.velocity.y > myCanvas.height ||
-      onPlatform
+      player.onPlatform
     ) {
       if (upPressed) {
         player.velocity.y = -20;
         player.gravity = 0.7;
         socket.emit("playerMovementY", player);
         socket.emit("playerGravity", player);
-        onPlatform = false;
+        player.onPlatform = false;
       }
     }
     if (
       player.position.y + player.size.y + player.velocity.y > myCanvas.height ||
-      !onPlatform
+      !player.onPlatform
     ) {
       let angleDiff = 0 - player.playerAngle;
       if (Math.abs(angleDiff) > 0.01) {
@@ -864,6 +854,7 @@ function start() {
     players_connected = data;
     load();
     animate();
+    started = true;
   });
   socket.on("lineListLoad", (data) => {
     for (let i = 0; i < data.length; i++) {
@@ -907,7 +898,7 @@ startBtn.onclick = function () {
   if (color != "" && userName != "") {
     menu.style.display = "none";
     myCanvas.style.display = "block";
-    started = true;
+
     start();
   } else if (color == "" && userName == "") {
     error.innerHTML = "Pick a name and color before starting!";

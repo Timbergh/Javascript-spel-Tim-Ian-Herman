@@ -69,6 +69,7 @@ function start() {
     }
 
     render() {
+      // Gör så att linjerna altid är åt samma riktning, oavsätt vilket håll man gör dem åt
       let rememberX1 = this.x1;
       let rememberX2 = this.x2;
       let rememberY1 = this.y1;
@@ -305,8 +306,7 @@ function start() {
           this.position.y + this.velocity.y <= hitboxup &&
           this.position.y >= hitboxup &&
           this.position.x + this.size.x + this.velocity.x >= lines[i].x1 &&
-          this.position.x <= lines[i].x2 &&
-          lines[i].isDiagonal == true
+          this.position.x <= lines[i].x2
         ) {
           this.velocity.y = -(this.position.y - hitboxup - lines[i].width - 1);
           this.position.y += this.velocity.y;
@@ -410,7 +410,6 @@ function start() {
             firstClick = false;
             paths = [];
             console.log(lines);
-
             socket.emit("lineData", {
               x: mouseX,
               y: mouseY,

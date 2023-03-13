@@ -98,27 +98,6 @@ function start() {
     }
   }
 
-  class Selector {
-    constructor(x1, y1, x2, y2, color) {
-      this.x1 = x1;
-      this.y1 = y1;
-      this.x2 = x2;
-      this.y2 = y2;
-      this.color = color;
-    }
-    renderSelectors() {
-      c.strokeStyle = this.color;
-      c.fillStyle = "transparent";
-      c.beginPath();
-      c.moveTo(this.x1 - (this.x1 % snapDeg), this.y1 - (this.y1 % snapDeg));
-      c.lineTo(this.x2 - (this.x2 % snapDeg), this.y1 - (this.y1 % snapDeg));
-      c.lineTo(this.x2 - (this.x2 % snapDeg), this.y2 - (this.y2 % snapDeg));
-      c.lineTo(this.x1 - (this.x1 % snapDeg), this.y2 - (this.y2 % snapDeg));
-      c.lineTo(this.x1 - (this.x1 % snapDeg), this.y1 - (this.x1 % snapDeg));
-      c.stroke();
-    }
-  }
-
   class Player {
     constructor({ name, position, velocity, color, size, gravity }) {
       this.name = name;
@@ -147,14 +126,7 @@ function start() {
 
     render() {
       c.fillStyle = this.color;
-      // c.save();
-      // c.translate(
-      //   this.position.x + this.size.x / 2,
-      //   this.position.y + this.size.y / 2
-      // );
-      // c.rotate(this.playerAngle);
       c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
-      // c.restore();
       c.fillStyle = "black";
       c.fillText(this.name, this.position.x + 25, this.position.y - 20);
     }
@@ -171,8 +143,6 @@ function start() {
         this.gravity = 0.7;
       } else {
         this.velocity.y += this.gravity;
-        this.tooSteepLeft = false;
-        this.tooSteepRight = false;
       }
       if (
         this.velocity.y >= -1 &&
@@ -203,7 +173,7 @@ function start() {
           this.hitboxleft = "";
         }
 
-        // Horizontal && diagonal
+        // Collision
         let hitbox = "";
         let hitboxup = Math.max(this.hitboxright, this.hitboxleft);
         if (this.hitboxright != "" && this.hitboxleft != "") {
@@ -243,12 +213,6 @@ function start() {
             this.velocity.y = lines[i].y1 - (this.position.y + this.size.y);
           } else if (lines[i].isDiagonal) {
             this.velocity.y = hitbox - (this.position.y + this.size.y);
-            // let newY =
-            //   this.position.x *
-            //     Math.abs(Math.sin((lines[i].angle * Math.PI) / 180)) +
-            //   this.position.y *
-            //     Math.abs(Math.cos((lines[i].angle * Math.PI) / 180));
-            // this.position.y = newY;
           } else if (lines[i].isVertical) {
             this.velocity.y =
               Math.min(lines[i].y1, lines[i].y2) -
@@ -257,61 +221,19 @@ function start() {
           this.position.y += this.velocity.y;
           this.velocity.y = 0;
           this.onPlatform = true;
-
-          let angleDiff = lines[i].angle - this.playerAngle;
-          if (Math.abs(angleDiff) > 0.01) {
-            this.playerAngle += angleDiff * this.rotationSpeed;
-          }
-          // Diagonal above
-          // if (
-          //   this.position.y + this.size.y + this.velocity.y >= hitbox &&
-          //   this.position.y <= hitbox &&
-          //   this.position.x + this.size.x >= lines[i].x1 &&
-          //   this.position.x <= lines[i].x2 &&
-          //   lines[i].isDiagonal == true
-          // ) {
-          //   this.velocity.y =
-          //     hitbox - lines[i].width - (this.position.y + this.size.y);
-          //   this.position.y += this.velocity.y;
-          //   this.velocity.y = 0;
-
-          //   this.onPlatform = true;
-          // if (
-          //   lines[i].angle < 0 &&
-          //   this.position.x + this.size.x >= lines[i].x2
-          // ) {
-          //   let angleDiff = 0 - this.playerAngle;
-          //   if (Math.abs(angleDiff) > 0.01) {
-          //     this.playerAngle += angleDiff * this.rotationSpeed;
-          //   }
-          // } else if (lines[i].angle > 0 && this.position.x <= lines[i].x1) {
-          //   let angleDiff = 0 - this.playerAngle;
-          //   if (Math.abs(angleDiff) > 0.01) {
-          //     this.playerAngle += angleDiff * this.rotationSpeed;
-          //   }
-          // } else {
-          //   let angleDiff = lines[i].angle - this.playerAngle;
-          //   if (Math.abs(angleDiff) > 0.01) {
-          //     this.playerAngle += angleDiff * this.rotationSpeed;
-          //   }
-          // }
-
-          // if (lines[i].angle > 1.1) {
-          //   this.tooSteepLeft = true;
-          // } else if (lines[i].angle < -1.1) {
-          //   this.tooSteepRight = true;
-          // }
         }
         if (
           this.position.y + this.velocity.y <= hitboxup &&
           this.position.y >= hitboxup &&
-          this.position.x + this.size.x + this.velocity.x >= lines[i].x1 &&
+          this.position.x + this.size.x >= lines[i].x1 &&
           this.position.x <= lines[i].x2
         ) {
-          this.velocity.y = -(this.position.y - hitboxup - lines[i].width - 1);
-          this.position.y += this.velocity.y;
+          this.velocity.y = -(this.position.y - hitboxup - lines[i].width);
+          // this.position.y += this.velocity.y;
           this.velocity.y = 0;
         }
+
+        // Vertical
         if (
           (this.position.x + this.size.x >= lines[i].x1 &&
             this.position.x <= lines[i].x1 &&
@@ -324,10 +246,8 @@ function start() {
             this.position.y < lines[i].y1 &&
             lines[i].isDiagonal == false)
         ) {
-          // Vertical
           this.velocity.x = 0;
         }
-        c.restore();
       }
     }
   }
@@ -339,24 +259,9 @@ function start() {
     }
   }
 
-  let drawlines = document.getElementById("draw");
-  let selectLines = document.getElementById("mark");
-
-  let draw = true;
-  let select = false;
-
-  drawlines.onclick = function () {
-    return (draw = true), (select = false);
-  };
-  selectLines.onclick = function () {
-    return (draw = false), (select = true);
-  };
-
   let firstClick = false;
   let lines = [];
   let paths = [];
-  let selectors = [];
-  let selectorPath = [];
   let redo = [];
   let undo = false;
   let rect = myCanvas.getBoundingClientRect();
@@ -370,7 +275,7 @@ function start() {
         e.clientY > rect.top - 1 &&
         e.clientY < rect.top + myCanvas.height + 10
       ) {
-        if (draw && started) {
+        if (started) {
           if (!firstClick) {
             if (!continuePath) {
               mouseX = e.clientX - rect.left;
@@ -417,57 +322,6 @@ function start() {
               y2: mouseY2,
             });
           }
-        }
-      }
-    });
-
-    document.addEventListener("mousedown", (e) => {
-      if (
-        e.clientX > rect.left - 1 &&
-        e.clientX < rect.left + myCanvas.width + 10 &&
-        e.clientY > rect.top - 1 &&
-        e.clientY < rect.top + myCanvas.height + 10
-      ) {
-        if (select) {
-          mouseX = e.clientX - rect.left;
-          mouseY = e.clientY - rect.top;
-          mouseX = mouseX - (mouseX % snapDeg);
-          mouseY = mouseY - (mouseY % snapDeg);
-
-          selectorPath.push(
-            new Selector(
-              mouseX,
-              mouseY,
-              e.clientX - rect.left,
-              e.clientY - rect.top,
-              "gray"
-            )
-          );
-          console.log(selectorPath);
-        }
-      }
-    });
-
-    document.addEventListener("mouseup", (e) => {
-      if (
-        e.clientX > rect.left - 1 &&
-        e.clientX < rect.left + myCanvas.width + 10 &&
-        e.clientY > rect.top - 1 &&
-        e.clientY < rect.top + myCanvas.height + 10
-      ) {
-        if (select) {
-          mouseX2 = e.clientX - rect.left;
-          mouseY2 = e.clientY - rect.top;
-          mouseX2 = mouseX2 - (mouseX % snapDeg);
-          mouseY2 = mouseY2 - (mouseY % snapDeg);
-
-          selectorPath = [];
-          selectors = [];
-          selectors.push(
-            new Selector(mouseX, mouseY, mouseX2, mouseY2, "white")
-          );
-
-          console.log(selectors);
         }
       }
     });
@@ -723,16 +577,6 @@ function start() {
     }
     try {
       paths[0].renderPath();
-    } catch (error) {
-      // pass
-    }
-    try {
-      selectors[0].renderSelectors();
-    } catch (error) {
-      // pass
-    }
-    try {
-      selectorPath[0].renderSelectors();
     } catch (error) {
       // pass
     }

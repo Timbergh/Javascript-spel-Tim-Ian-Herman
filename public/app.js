@@ -135,7 +135,7 @@ function start() {
       this.render();
       this.position.x += this.velocity.x;
       this.position.y += this.velocity.y;
-
+      // Collision
       if (this.position.y + this.size.y + this.velocity.y > myCanvas.height) {
         this.velocity.y = myCanvas.height - (this.position.y + this.size.y);
         this.position.y += this.velocity.y;
@@ -173,9 +173,27 @@ function start() {
           this.hitboxleft = "";
         }
 
-        // Collision
         let hitbox = "";
         let hitboxup = Math.max(this.hitboxright, this.hitboxleft);
+
+        // Player velocity regler
+
+        if (
+          player.position.x >= lines[i].x2 &&
+          player.position.x + player.velocity.x <= lines[i].x2 &&
+          lines[i].isHorizontal
+        ) {
+          player.position.x -= player.position.x - lines[i].x2;
+          player.velocity.x = 0;
+        }
+        if (
+          player.position.x >= hitboxup &&
+          player.position.x + player.velocity.x <= hitboxup &&
+          lines[i].isDiagonal
+        ) {
+          player.position.x -= player.position.x - hitboxup;
+          player.velocity.x = 0;
+        }
         if (this.hitboxright != "" && this.hitboxleft != "") {
           hitbox = Math.min(this.hitboxright, this.hitboxleft);
         } else if (this.hitboxright == "") {
@@ -183,6 +201,7 @@ function start() {
         } else if (this.hitboxleft == "") {
           hitbox = this.hitboxright;
         }
+
         if (
           (lines[i].isVertical &&
             this.position.y + this.size.y + this.velocity.y >=
@@ -229,7 +248,6 @@ function start() {
           this.position.x <= lines[i].x2
         ) {
           this.velocity.y = -(this.position.y - hitboxup - lines[i].width);
-          // this.position.y += this.velocity.y;
           this.velocity.y = 0;
         }
 
@@ -447,6 +465,7 @@ function start() {
         }
         break;
       case " ":
+        console.log(player.position.x);
         upPressed = true;
         break;
       case "Enter":
@@ -571,7 +590,6 @@ function start() {
   function animate() {
     requestAnimationFrame(animate);
     c.clearRect(0, 0, innerWidth, innerHeight);
-
     for (let i = 0; i < lines.length; i++) {
       lines[i].render();
     }

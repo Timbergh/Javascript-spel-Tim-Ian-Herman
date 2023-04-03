@@ -5,6 +5,7 @@ let snapDeg = 20;
 let chat = false;
 let chatters = [];
 let started = false;
+let hitboxx = "";
 let buildmode = document.getElementById("build");
 color_picker = document.getElementsByClassName("size");
 let cursor = document.getElementById("cursor");
@@ -112,16 +113,6 @@ function start() {
       this.tooSteepLeft = false;
       this.tooSteepRight = false;
       this.onPlatform = false;
-      for (let i = 0; i < lines.length; i++) {
-        this.hitboxright =
-          this.y1 -
-          (this.position.x + this.size.x - lines[i].x1) *
-            -((lines[i].y2 - lines[i].y1) / (lines[i].x2 - lines[i].x1));
-        this.hitboxleft =
-          this.y1 -
-          (this.position.x - lines[i].x1) *
-            -((lines[i].y2 - lines[i].y1) / (lines[i].x2 - lines[i].x1));
-      }
     }
 
     render() {
@@ -151,7 +142,35 @@ function start() {
       ) {
         this.gravity = 2.1;
       }
+      let alla = [];
+      for (let i = 0; i < lines.length; i++) {
+        if (
+          this.position.y >= Math.min(lines[i].y1, lines[i].y2) &&
+          this.position.y - this.size.y <= Math.max(lines[i].y1, lines[i].y2)
+        ) {
+          alla.push([
+            lines[i].x1 +
+              (Math.abs(lines[i].x2 - lines[i].x1) *
+                (this.position.y - this.size.y)) /
+                Math.abs(lines[i].y1 - lines[i].y2),
+            i,
+          ]);
+          console.log(alla);
+        }
+      }
 
+      let closestObj = null;
+      let closestDist = Infinity;
+
+      for (let i = 0; i < alla.length; i++) {
+        const dist = Math.abs(this.position.x - alla[i][0]);
+        if (dist < closestDist) {
+          closestDist = dist;
+          closestObj = alla[i][1];
+        }
+      }
+      console.log(closestObj);
+      // LÅT HAN KOKA
       for (let i = 0; i < lines.length; i++) {
         if (
           this.position.x + this.size.x >= lines[i].x1 &&
@@ -173,7 +192,7 @@ function start() {
           this.hitboxleft = "";
         }
 
-        let hitbox = "";
+        let hitboxy = "";
         let hitboxup = Math.max(this.hitboxright, this.hitboxleft);
 
         // Player velocity regler
@@ -187,19 +206,19 @@ function start() {
           player.velocity.x = 0;
         }
         if (
-          player.position.x >= hitboxup &&
-          player.position.x + player.velocity.x <= hitboxup &&
+          player.position.x >= hitboxx &&
+          player.position.x + player.velocity.x <= hitboxx &&
           lines[i].isDiagonal
         ) {
-          player.position.x -= player.position.x - hitboxup;
+          player.position.x -= player.position.x - hitboxx;
           player.velocity.x = 0;
         }
         if (this.hitboxright != "" && this.hitboxleft != "") {
-          hitbox = Math.min(this.hitboxright, this.hitboxleft);
+          hitboxy = Math.min(this.hitboxright, this.hitboxleft);
         } else if (this.hitboxright == "") {
-          hitbox = this.hitboxleft;
+          hitboxy = this.hitboxleft;
         } else if (this.hitboxleft == "") {
-          hitbox = this.hitboxright;
+          hitboxy = this.hitboxright;
         }
 
         if (
@@ -222,8 +241,8 @@ function start() {
             this.position.x <= lines[i].x1 &&
             lines[i].isDiagonal == false &&
             lines[i].isVertical == false) ||
-          (this.position.y + this.size.y + this.velocity.y >= hitbox &&
-            this.position.y <= hitbox &&
+          (this.position.y + this.size.y + this.velocity.y >= hitboxy &&
+            this.position.y <= hitboxy &&
             this.position.x + this.size.x >= lines[i].x1 &&
             this.position.x <= lines[i].x2 &&
             lines[i].isDiagonal)
@@ -231,7 +250,7 @@ function start() {
           if (lines[i].isHorizontal) {
             this.velocity.y = lines[i].y1 - (this.position.y + this.size.y);
           } else if (lines[i].isDiagonal) {
-            this.velocity.y = hitbox - (this.position.y + this.size.y);
+            this.velocity.y = hitboxy - (this.position.y + this.size.y);
           } else if (lines[i].isVertical) {
             this.velocity.y =
               Math.min(lines[i].y1, lines[i].y2) -
@@ -252,20 +271,20 @@ function start() {
         }
 
         // Vertical
-        if (
-          (this.position.x + this.size.x >= lines[i].x1 &&
-            this.position.x <= lines[i].x1 &&
-            this.position.y + this.size.y > lines[i].y1 &&
-            this.position.y < lines[i].y2 &&
-            lines[i].isDiagonal == false) ||
-          (this.position.x + this.size.x >= lines[i].x2 &&
-            this.position.x <= lines[i].x2 &&
-            this.position.y + this.size.y > lines[i].y2 &&
-            this.position.y < lines[i].y1 &&
-            lines[i].isDiagonal == false)
-        ) {
-          this.velocity.x = 0;
-        }
+        // if (
+        //   (this.position.x + this.size.x >= lines[i].x1 &&
+        //     this.position.x <= lines[i].x1 &&
+        //     this.position.y + this.size.y > lines[i].y1 &&
+        //     this.position.y < lines[i].y2 &&
+        //     lines[i].isDiagonal == false) ||
+        //   (this.position.x + this.size.x >= lines[i].x2 &&
+        //     this.position.x <= lines[i].x2 &&
+        //     this.position.y + this.size.y > lines[i].y2 &&
+        //     this.position.y < lines[i].y1 &&
+        //     lines[i].isDiagonal == false)
+        // ) {
+        //   this.velocity.x = 0;
+        // }
       }
     }
   }

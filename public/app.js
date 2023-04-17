@@ -119,6 +119,7 @@ function start() {
       c.fillStyle = this.color;
       c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
       c.fillStyle = "black";
+      c.textAlign = "center";
       c.fillText(this.name, this.position.x + 25, this.position.y - 20);
     }
 
@@ -142,35 +143,79 @@ function start() {
       ) {
         this.gravity = 2.1;
       }
-      let alla = [];
+      // Check if player is intersecting with any line segments
       for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+        let isIntersecting = false;
+        let intersectX, intersectY;
+
+        // Check if player is within y bounds of line segment
         if (
-          this.position.y >= Math.min(lines[i].y1, lines[i].y2) &&
-          this.position.y - this.size.y <= Math.max(lines[i].y1, lines[i].y2)
+          this.position.y + this.size.y >= Math.min(line.y1, line.y2) &&
+          this.position.y <= Math.max(line.y1, line.y2)
         ) {
-          alla.push([
-            lines[i].x1 +
-              (Math.abs(lines[i].x2 - lines[i].x1) *
-                (this.position.y - this.size.y)) /
-                Math.abs(lines[i].y1 - lines[i].y2),
-            i,
-          ]);
-          console.log(alla);
+          // Calculate x coordinate of intersection with line segment
+          intersectX =
+            ((this.position.y - line.y1) * (line.x2 - line.x1)) /
+              (line.y2 - line.y1) +
+            line.x1;
+
+          // Check if player is on the correct side of the line segment
+          if (
+            (line.y2 - line.y1) * (intersectX - line.x1) >
+            (line.x2 - line.x1) * (intersectY - line.y1)
+          ) {
+            isIntersecting = true;
+          }
+        }
+
+        if (isIntersecting) {
+          // Move player to closest point on the correct side of the line segment
+          let closestX = this.position.x < intersectX ? line.x1 : line.x2;
+          let closestY =
+            line.y1 +
+            ((line.y2 - line.y1) * (closestX - line.x1)) / (line.x2 - line.x1);
+          let distanceX = closestX - (this.position.x + this.size.x / 2);
+          let distanceY = closestY - (this.position.y + this.size.y);
+
+          if (Math.abs(distanceX) < Math.abs(distanceY)) {
+            this.position.x += distanceX;
+          } else {
+            this.position.y += distanceY;
+          }
         }
       }
 
-      let closestObj = null;
-      let closestDist = Infinity;
+      // let alla = [];
+      // for (let i = 0; i < lines.length; i++) {
+      //   if (
+      //     this.position.y + this.size.y >= Math.min(lines[i].y1, lines[i].y2) &&
+      //     this.position.y <= Math.max(lines[i].y1, lines[i].y2)
+      //   ) {
+      //     alla.push([
+      //       Math.min(lines[i].x1, lines[i].x2) +
+      //         (Math.abs(lines[i].x2 - lines[i].x1) * this.position.y) /
+      //           Math.abs(lines[i].y1 - lines[i].y2),
+      //       i,
+      //     ]);
+      //   }
+      // }
+      // console.log(alla);
 
-      for (let i = 0; i < alla.length; i++) {
-        const dist = Math.abs(this.position.x - alla[i][0]);
-        if (dist < closestDist) {
-          closestDist = dist;
-          closestObj = alla[i][1];
-        }
-      }
-      console.log(closestObj);
-      // LÅT HAN KOKA
+      // let closestObj = null;
+      // let closestDist = Infinity;
+
+      // for (let i = 0; i < alla.length; i++) {
+      //   if (
+      //     Math.abs(this.position.x + this.size.x / 2 - alla[i][0]) < closestDist
+      //   ) {
+      //     closestDist = Math.abs(
+      //       this.position.x + this.size.x / 2 - alla[i][0]
+      //     );
+      //     closestObj = alla[i][1];
+      //   }
+      // }
+      // console.log(closestObj);
       for (let i = 0; i < lines.length; i++) {
         if (
           this.position.x + this.size.x >= lines[i].x1 &&

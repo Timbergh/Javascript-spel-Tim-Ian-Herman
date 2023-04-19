@@ -143,48 +143,6 @@ function start() {
       ) {
         this.gravity = 2.1;
       }
-      // Check if player is intersecting with any line segments
-      for (let i = 0; i < lines.length; i++) {
-        let line = lines[i];
-        let isIntersecting = false;
-        let intersectX, intersectY;
-
-        // Check if player is within y bounds of line segment
-        if (
-          this.position.y + this.size.y >= Math.min(line.y1, line.y2) &&
-          this.position.y <= Math.max(line.y1, line.y2)
-        ) {
-          // Calculate x coordinate of intersection with line segment
-          intersectX =
-            ((this.position.y - line.y1) * (line.x2 - line.x1)) /
-              (line.y2 - line.y1) +
-            line.x1;
-
-          // Check if player is on the correct side of the line segment
-          if (
-            (line.y2 - line.y1) * (intersectX - line.x1) >
-            (line.x2 - line.x1) * (intersectY - line.y1)
-          ) {
-            isIntersecting = true;
-          }
-        }
-
-        if (isIntersecting) {
-          // Move player to closest point on the correct side of the line segment
-          let closestX = this.position.x < intersectX ? line.x1 : line.x2;
-          let closestY =
-            line.y1 +
-            ((line.y2 - line.y1) * (closestX - line.x1)) / (line.x2 - line.x1);
-          let distanceX = closestX - (this.position.x + this.size.x / 2);
-          let distanceY = closestY - (this.position.y + this.size.y);
-
-          if (Math.abs(distanceX) < Math.abs(distanceY)) {
-            this.position.x += distanceX;
-          } else {
-            this.position.y += distanceY;
-          }
-        }
-      }
 
       // let alla = [];
       // for (let i = 0; i < lines.length; i++) {
@@ -242,21 +200,48 @@ function start() {
 
         // Player velocity regler
 
+        // Check for collision with slopes
+        for (let i = 0; i < lines.length; i++) {
+          // Check if player is within y bounds of the slope
+          if (
+            this.position.y + this.size.y >=
+              Math.min(lines[i].y1, lines[i].y2) &&
+            this.position.y <= Math.max(lines[i].y1, lines[i].y2)
+          ) {
+            // Calculate the x position on the slope where the player would intersect
+            const xIntersect =
+              lines[i].x1 +
+              ((this.position.y - lines[i].y1) * (lines[i].x2 - lines[i].x1)) /
+                (lines[i].y2 - lines[i].y1);
+
+            // Check if player is intersecting with slope
+            if (
+              this.position.x + this.size.x >= xIntersect &&
+              this.position.x <= xIntersect
+            ) {
+              // Player is intersecting with slope, prevent movement
+              this.velocity.x = 0;
+              this.velocity.y = 5;
+              break; // Stop checking for other slopes
+            }
+          }
+        }
+
         if (
-          player.position.x >= lines[i].x2 &&
-          player.position.x + player.velocity.x <= lines[i].x2 &&
+          this.position.x >= lines[i].x2 &&
+          this.position.x + this.velocity.x <= lines[i].x2 &&
           lines[i].isHorizontal
         ) {
-          player.position.x -= player.position.x - lines[i].x2;
-          player.velocity.x = 0;
+          this.position.x -= this.position.x - lines[i].x2;
+          this.velocity.x = 0;
         }
         if (
-          player.position.x >= hitboxx &&
-          player.position.x + player.velocity.x <= hitboxx &&
+          this.position.x >= hitboxx &&
+          this.position.x + this.velocity.x <= hitboxx &&
           lines[i].isDiagonal
         ) {
-          player.position.x -= player.position.x - hitboxx;
-          player.velocity.x = 0;
+          this.position.x -= this.position.x - hitboxx;
+          this.velocity.x = 0;
         }
         if (this.hitboxright != "" && this.hitboxleft != "") {
           hitboxy = Math.min(this.hitboxright, this.hitboxleft);

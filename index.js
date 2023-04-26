@@ -4,12 +4,47 @@ const http = require("http");
 const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
+const mysql = require("mysql");
 
 app.use(express.static("public"));
 
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/index.html");
 });
+
+const bodyParser = require("body-parser");
+app.use(bodyParser.urlencoded({ extended: true }));
+
+let con = mysql.createConnection({
+  host: "localhost",
+  user: "root",
+  password: "",
+  database: "spel",
+});
+
+con.connect(function (err) {
+  if (err) throw err;
+  console.log("Connected!");
+});
+
+app.post("/login", (req, res) => {
+  const { name, password, x, y } = req.body;
+  const checkName = "SELECT name FROM login WHERE name = ?";
+  con.query(checkName, [name], (err, result) => {
+    if (err) throw err;
+    if (result.length > 0) {
+      res.status(409).json({ error: "Name already taken" });
+    } else {
+      const sql = "INSERT INTO login (name, password) VALUES (?, ?)";
+      con.query(sql, [name, password, x, y], (err, result) => {
+        if (err) throw err;
+        console.log("User saved to database");
+        res.status(200).json({ message: "User created successfully" });
+      });
+    }
+  });
+});
+
 const players_connected = [];
 const lines = [];
 io.on("connection", (socket) => {

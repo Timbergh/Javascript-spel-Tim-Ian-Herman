@@ -42,6 +42,43 @@ for (let i = 0; i < color_picker.length; i++) {
   };
 }
 
+const form = document.getElementById("login-form");
+
+form.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const nameInput = document.getElementById("name").value;
+  const passwordInput = document.getElementById("password").value;
+  const errorMessage = document.querySelector(".error-message");
+
+  if (!nameInput.trim()) {
+    errorMessage.innerHTML = "Please enter a name";
+    errorMessage.style.display = "block";
+  } else {
+    fetch("/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: nameInput,
+        password: passwordInput,
+      }),
+    })
+      .then((response) => {
+        if (response.status === 409) {
+          console.log("Name already taken");
+          errorMessage.style.display = "block";
+        } else {
+          errorMessage.style.display = "none";
+          // handle successful login or registration
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+      });
+  }
+});
+
 function start() {
   let socket = io();
   window.focus;
@@ -70,7 +107,7 @@ function start() {
     }
 
     render() {
-      // Gör så att linjerna altid är åt samma riktning, oavsätt vilket håll man gör dem åt
+      // Gör så att linjerna alltid är åt samma riktning, oavsätt vilket håll man gör dem åt
       let rememberX1 = this.x1;
       let rememberX2 = this.x2;
       let rememberY1 = this.y1;
@@ -144,36 +181,6 @@ function start() {
         this.gravity = 2.1;
       }
 
-      // let alla = [];
-      // for (let i = 0; i < lines.length; i++) {
-      //   if (
-      //     this.position.y + this.size.y >= Math.min(lines[i].y1, lines[i].y2) &&
-      //     this.position.y <= Math.max(lines[i].y1, lines[i].y2)
-      //   ) {
-      //     alla.push([
-      //       Math.min(lines[i].x1, lines[i].x2) +
-      //         (Math.abs(lines[i].x2 - lines[i].x1) * this.position.y) /
-      //           Math.abs(lines[i].y1 - lines[i].y2),
-      //       i,
-      //     ]);
-      //   }
-      // }
-      // console.log(alla);
-
-      // let closestObj = null;
-      // let closestDist = Infinity;
-
-      // for (let i = 0; i < alla.length; i++) {
-      //   if (
-      //     Math.abs(this.position.x + this.size.x / 2 - alla[i][0]) < closestDist
-      //   ) {
-      //     closestDist = Math.abs(
-      //       this.position.x + this.size.x / 2 - alla[i][0]
-      //     );
-      //     closestObj = alla[i][1];
-      //   }
-      // }
-      // console.log(closestObj);
       for (let i = 0; i < lines.length; i++) {
         if (
           this.position.x + this.size.x >= lines[i].x1 &&
@@ -195,37 +202,37 @@ function start() {
           this.hitboxleft = "";
         }
 
-        let hitboxy = "";
-        let hitboxup = Math.max(this.hitboxright, this.hitboxleft);
+        // let hitboxy = "";
+        // let hitboxup = Math.max(this.hitboxright, this.hitboxleft);
 
-        // Player velocity regler
+        // // Player velocity regler
 
-        // Check for collision with slopes
-        for (let i = 0; i < lines.length; i++) {
-          // Check if player is within y bounds of the slope
-          if (
-            this.position.y + this.size.y >=
-              Math.min(lines[i].y1, lines[i].y2) &&
-            this.position.y <= Math.max(lines[i].y1, lines[i].y2)
-          ) {
-            // Calculate the x position on the slope where the player would intersect
-            const xIntersect =
-              lines[i].x1 +
-              ((this.position.y - lines[i].y1) * (lines[i].x2 - lines[i].x1)) /
-                (lines[i].y2 - lines[i].y1);
+        // // Check for collision with slopes
+        // for (let i = 0; i < lines.length; i++) {
+        //   // Check if player is within y bounds of the slope
+        //   if (
+        //     this.position.y + this.size.y >=
+        //       Math.min(lines[i].y1, lines[i].y2) &&
+        //     this.position.y <= Math.max(lines[i].y1, lines[i].y2)
+        //   ) {
+        //     // Calculate the x position on the slope where the player would intersect
+        //     const xIntersect =
+        //       lines[i].x1 +
+        //       ((this.position.y - lines[i].y1) * (lines[i].x2 - lines[i].x1)) /
+        //         (lines[i].y2 - lines[i].y1);
 
-            // Check if player is intersecting with slope
-            if (
-              this.position.x + this.size.x >= xIntersect &&
-              this.position.x <= xIntersect
-            ) {
-              // Player is intersecting with slope, prevent movement
-              this.velocity.x = 0;
-              this.velocity.y = 5;
-              break; // Stop checking for other slopes
-            }
-          }
-        }
+        //     // Check if player is intersecting with slope
+        //     if (
+        //       this.position.x + this.size.x >= xIntersect &&
+        //       this.position.x <= xIntersect
+        //     ) {
+        //       // Player is intersecting with slope, prevent movement
+        //       this.velocity.x = 0;
+        //       this.velocity.y = 5;
+        //       break; // Stop checking for other slopes
+        //     }
+        //   }
+        // }
 
         if (
           this.position.x >= lines[i].x2 &&

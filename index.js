@@ -12,8 +12,10 @@ app.get("/", (req, res) => {
   res.sendFile(__dirname + "/index.html");
 });
 
-const bodyParser = require("body-parser");
-app.use(bodyParser.urlencoded({ extended: true }));
+const bodyParser = require('body-parser');
+
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 
 let con = mysql.createConnection({
   host: "localhost",
@@ -28,27 +30,43 @@ con.connect(function (err) {
 });
 
 app.post("/login", (req, res) => {
-  const { name, password, x, y } = req.body;
-  const checkName = "SELECT name FROM login WHERE name = ?";
+  const { name, password } = req.body;
+  const checkName = "SELECT password FROM login WHERE name = ?";
   con.query(checkName, [name], (err, result) => {
     if (err) throw err;
     if (result.length > 0) {
-      res.status(409).json({ error: "Name already taken" });
+      const storedPassword = result[0].password;
+      if (password === storedPassword) {
+        res.status(200).json({ message: "Login successful" });
+      } else {
+        res.status(401).json({ error: "Name already taken" });
+      }
     } else {
       const sql = "INSERT INTO login (name, password) VALUES (?, ?)";
-      con.query(sql, [name, password, x, y], (err, result) => {
+      con.query(sql, [name, password], (err, result) => {
         if (err) throw err;
         console.log("User saved to database");
-        res.status(200).json({ message: "User created successfully" });
+        res.status(201).json({ message: "User created successfully" });
       });
     }
   });
 });
 
+
 const players_connected = [];
 const lines = [];
 io.on("connection", (socket) => {
   console.log("a user connected");
+
+  socket.on("playerData", (data) => {
+    console.log(`${data.name} joined the game`);
+    const sql = "SELECT x, y FROM login WHERE name = ?";
+    con.query(sql, [data.name], (err, result) => {
+      if (err) throw err;
+      const { x, y } = result[0];
+      socket.emit("startPosition", { x, y });
+    });
+  });
 
   socket.on("disconnect", () => {
     console.log("user disconnected");
@@ -93,6 +111,18 @@ io.on("connection", (socket) => {
       if (data.name == players_connected[i][0].name) {
         players_connected[i][0].position = data.position;
       }
+      socket.on("disconnect", () => {
+        let name = data.name;
+        let x = data.position.x;
+        let y = data.position.y;
+
+        let sql = "UPDATE login SET x = ?, y = ? WHERE name = ?";
+        con.query(sql, [x, y, name], (err, result) => {
+          if (err) throw err;
+          console.log("User position saved to database");
+          console.log(x, y, name);
+        });
+      })
     }
   });
 
@@ -104,11 +134,6 @@ io.on("connection", (socket) => {
   socket.on("lineData", (data) => {
     lines.push(data);
     io.emit("lineList", lines);
-  });
-
-  socket.on("lineUndo", () => {
-    lines.pop();
-    io.emit("undoLine", lines);
   });
 });
 

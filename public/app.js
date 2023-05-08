@@ -9,6 +9,7 @@ let hitboxx = "";
 let buildmode = document.getElementById("build");
 color_picker = document.getElementsByClassName("size");
 let cursor = document.getElementById("cursor");
+let loggedInAs = ""
 for (let i = 0; i < color_picker.length; i++) {
   color_picker[i].onclick = function () {
     color = color_picker[i].classList[0];
@@ -42,17 +43,30 @@ for (let i = 0; i < color_picker.length; i++) {
   };
 }
 
-const form = document.getElementById("login-form");
+let form = document.getElementById("login-form");
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
-  const nameInput = document.getElementById("name").value;
-  const passwordInput = document.getElementById("password").value;
-  const errorMessage = document.querySelector(".error-message");
+  let nameInput = document.getElementById("name").value;
+  let passwordInput = document.getElementById("password").value;
+  let errorMessage = document.querySelector(".error-message");
+
+  let emptyInput = function(inputType) {
+    errorMessage.innerHTML = "Please enter a " + inputType;
+    errorMessage.style.display = "block";
+    errorMessage.style.color = "red"
+  }
+
+  let createAccount = function(message, color) {
+    errorMessage.innerHTML = message;
+    errorMessage.style.display = "block";
+    errorMessage.style.color = color
+  }   
 
   if (!nameInput.trim()) {
-    errorMessage.innerHTML = "Please enter a name";
-    errorMessage.style.display = "block";
+    emptyInput("name")
+  } else if (!passwordInput.trim()) {
+    emptyInput("password")
   } else {
     fetch("/login", {
       method: "POST",
@@ -65,12 +79,13 @@ form.addEventListener("submit", (event) => {
       }),
     })
       .then((response) => {
-        if (response.status === 409) {
-          console.log("Name already taken");
-          errorMessage.style.display = "block";
+        if (response.status === 200) {
+          createAccount("Logged in", "lightgreen")
+          loggedInAs = nameInput
+        } else if (response.status === 401) {
+          createAccount("Name is already taken!", "red")
         } else {
-          errorMessage.style.display = "none";
-          // handle successful login or registration
+          createAccount("Account created", "lightgreen")
         }
       })
       .catch((error) => {
@@ -155,7 +170,7 @@ function start() {
     render() {
       c.fillStyle = this.color;
       c.fillRect(this.position.x, this.position.y, this.size.x, this.size.y);
-      c.fillStyle = "black";
+      c.fillStyle = "white";
       c.textAlign = "center";
       c.fillText(this.name, this.position.x + 25, this.position.y - 20);
     }
@@ -202,46 +217,9 @@ function start() {
           this.hitboxleft = "";
         }
 
-        // let hitboxy = "";
-        // let hitboxup = Math.max(this.hitboxright, this.hitboxleft);
+        let hitboxy = "";
+        let hitboxup = Math.max(this.hitboxright, this.hitboxleft);
 
-        // // Player velocity regler
-
-        // // Check for collision with slopes
-        // for (let i = 0; i < lines.length; i++) {
-        //   // Check if player is within y bounds of the slope
-        //   if (
-        //     this.position.y + this.size.y >=
-        //       Math.min(lines[i].y1, lines[i].y2) &&
-        //     this.position.y <= Math.max(lines[i].y1, lines[i].y2)
-        //   ) {
-        //     // Calculate the x position on the slope where the player would intersect
-        //     const xIntersect =
-        //       lines[i].x1 +
-        //       ((this.position.y - lines[i].y1) * (lines[i].x2 - lines[i].x1)) /
-        //         (lines[i].y2 - lines[i].y1);
-
-        //     // Check if player is intersecting with slope
-        //     if (
-        //       this.position.x + this.size.x >= xIntersect &&
-        //       this.position.x <= xIntersect
-        //     ) {
-        //       // Player is intersecting with slope, prevent movement
-        //       this.velocity.x = 0;
-        //       this.velocity.y = 5;
-        //       break; // Stop checking for other slopes
-        //     }
-        //   }
-        // }
-
-        if (
-          this.position.x >= lines[i].x2 &&
-          this.position.x + this.velocity.x <= lines[i].x2 &&
-          lines[i].isHorizontal
-        ) {
-          this.position.x -= this.position.x - lines[i].x2;
-          this.velocity.x = 0;
-        }
         if (
           this.position.x >= hitboxx &&
           this.position.x + this.velocity.x <= hitboxx &&
@@ -288,7 +266,8 @@ function start() {
             this.velocity.y = lines[i].y1 - (this.position.y + this.size.y);
           } else if (lines[i].isDiagonal) {
             this.velocity.y = hitboxy - (this.position.y + this.size.y);
-          } else if (lines[i].isVertical) {
+          } 
+          else if (lines[i].isVertical) {
             this.velocity.y =
               Math.min(lines[i].y1, lines[i].y2) -
               (this.position.y + this.size.y);
@@ -305,23 +284,28 @@ function start() {
         ) {
           this.velocity.y = -(this.position.y - hitboxup - lines[i].width);
           this.velocity.y = 0;
-        }
+        } 
 
         // Vertical
-        // if (
-        //   (this.position.x + this.size.x >= lines[i].x1 &&
-        //     this.position.x <= lines[i].x1 &&
-        //     this.position.y + this.size.y > lines[i].y1 &&
-        //     this.position.y < lines[i].y2 &&
-        //     lines[i].isDiagonal == false) ||
-        //   (this.position.x + this.size.x >= lines[i].x2 &&
-        //     this.position.x <= lines[i].x2 &&
-        //     this.position.y + this.size.y > lines[i].y2 &&
-        //     this.position.y < lines[i].y1 &&
-        //     lines[i].isDiagonal == false)
-        // ) {
-        //   this.velocity.x = 0;
-        // }
+        if (
+          (this.position.x + this.size.x >= lines[i].x1 &&
+            this.position.x <= lines[i].x1 &&
+            this.position.y + this.size.y > lines[i].y1 &&
+            this.position.y < lines[i].y2 &&
+            lines[i].isVertical == true) ||
+          (this.position.x <= lines[i].x2 &&
+            this.position.x + this.size.x > lines[i].x2 &&
+            this.position.y + this.size.y > lines[i].y1 &&
+            this.position.y < lines[i].y2 &&
+            lines[i].isVertical == true)
+        ) {
+          if (this.velocity.x > 0) {
+            this.position.x = lines[i].x1 - this.size.x - 3;
+          } else if (this.velocity.x < 0) {
+            this.position.x = lines[i].x2 + 3;
+          }
+          this.velocity.x = 0;
+        }        
       }
     }
   }
@@ -336,8 +320,6 @@ function start() {
   let firstClick = false;
   let lines = [];
   let paths = [];
-  let redo = [];
-  let undo = false;
   let rect = myCanvas.getBoundingClientRect();
 
   if (buildmode.checked) {
@@ -358,15 +340,6 @@ function start() {
               mouseY = mouseY - (mouseY % snapDeg);
               rememberMouseX = mouseX;
               rememberMouseY = mouseY;
-            } else {
-              if (undo) {
-                mouseX = lines[lines.length - 1].x2;
-                mouseY = lines[lines.length - 1].y2;
-                undo = false;
-              } else {
-                mouseX = mouseX2;
-                mouseY = mouseY2;
-              }
             }
             paths.push(
               new Line(
@@ -406,39 +379,20 @@ function start() {
         lines.push(
           new Line(data[i].x, data[i].y, data[i].x2, data[i].y2, "black", 5)
         );
+        lines.push(
+          new Line(data[i].x, data[i].y, data[i].x, data[i].y, "black", 5)
+        );
+        lines.push(
+          new Line(data[i].x2, data[i].y2, data[i].x2, data[i].y2, "black", 5)
+        );
       }
     });
-    socket.on("undoLine", () => {
-      if (lines > 0) {
-        lines.pop();
-      }
-    });
+
 
     document.addEventListener("keydown", (e) => {
       switch (e.key) {
         case "Shift":
           continuePath = true;
-          break;
-        case "z":
-        case "Z":
-          socket.emit("lineUndo");
-          undo = true;
-          break;
-        case "y":
-        case "Y":
-          if (redo.length > 0) {
-            lines.push(
-              new Line(
-                redo[redo.length - 1].x1,
-                redo[redo.length - 1].y1,
-                redo[redo.length - 1].x2,
-                redo[redo.length - 1].y2,
-                "black",
-                5
-              )
-            );
-            redo.pop();
-          }
           break;
       }
     });
@@ -454,8 +408,13 @@ function start() {
     });
   }
 
+  socket.on("startPosition", ({ x, y }) => {
+    player.position.x = x;
+    player.position.y = y;
+  });
+
   const player = new Player({
-    name: userName,
+    name: loggedInAs,
     color: color,
     position: {
       x: 0,
@@ -613,6 +572,9 @@ function start() {
       }
     }
   });
+
+ 
+  
 
   function load() {
     for (let i = 0; i < players_connected.length; i++) {
@@ -811,18 +773,17 @@ function start() {
 startBtn = document.getElementById("start");
 error = document.getElementById("error");
 startBtn.onclick = function () {
-  userName = document.getElementById("userName").value;
-  if (color != "" && userName != "") {
+  if (color != "" && loggedInAs != "") {
     menu.style.display = "none";
     myCanvas.style.display = "block";
 
     start();
-  } else if (color == "" && userName == "") {
-    error.innerHTML = "Pick a name and color before starting!";
+  } else if (color == "" && loggedInAs == "") {
+    error.innerHTML = "Create an account or log in color before starting!";
   } else if (color == "") {
     error.innerHTML = "Pick a color before starting";
-  } else if (userName == "") {
-    error.innerHTML = "Pick a name before starting";
+  } else if (loggedInAs == "") {
+    error.innerHTML = "Create an account or log in before starting";
   }
   error.style.display = "block";
 };

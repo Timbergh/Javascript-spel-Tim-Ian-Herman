@@ -15,27 +15,21 @@
   <body>
     <div id="menu">
       <form action="/login" id="login-form" method="post">
-        <p class="error-message">Name is already taken!</p>
+        <p class="error-message"></p>
         <label for="name">Username:</label>
         <input type="text" id="name" name="name" /><br />
 
         <label for="password">Password:</label>
         <input type="password" id="password" name="password" /><br />
 
-        <input type="submit" value="Create Account" />
+        <input type="submit" value="Create Account/Login" />
         <br />
       </form>
       <form onsubmit="return false" autocomplete="off">
-        <p>Enter Name</p>
-        <input
-          class="menuItem"
-          id="userName"
-          type="text"
-          name="name"
-          maxlength="20"
-        />
+        
         <br />
         <button class="menuItem" id="start" type="button">Start Game</button>
+        <br />
         Build mode:
         <input id="build" name="build" type="checkbox" />
       </form>

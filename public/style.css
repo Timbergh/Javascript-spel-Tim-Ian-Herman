@@ -104,11 +104,14 @@ form {
 
 #start {
   border: none;
-  background: none;
+  background: rgb(96, 175, 96);
   cursor: pointer;
   font-family: "Press Start 2P", cursive;
   font-size: larger;
   color: lightgreen;
+  padding: 5px;
+  border: lightgreen outset 5px;
+  border-radius: 5%;
 }
 
 .error-message {

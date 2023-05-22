@@ -10,6 +10,7 @@ let buildmode = document.getElementById("build");
 color_picker = document.getElementsByClassName("size");
 let cursor = document.getElementById("cursor");
 let loggedInAs = ""
+// Ändrar färg på din karaktär
 for (let i = 0; i < color_picker.length; i++) {
   color_picker[i].onclick = function () {
     color = color_picker[i].classList[0];
@@ -179,7 +180,7 @@ function start() {
       this.render();
       this.position.x += this.velocity.x;
       this.position.y += this.velocity.y;
-      // Collision
+      // Här är alla uträkningar för att hantera kollision med spelaren och linjer. Funker med vertikala, horizontala och diagonala linjer.
       if (this.position.y + this.size.y + this.velocity.y > myCanvas.height) {
         this.velocity.y = myCanvas.height - (this.position.y + this.size.y);
         this.position.y += this.velocity.y;
@@ -286,7 +287,6 @@ function start() {
           this.velocity.y = 0;
         } 
 
-        // Vertical
         if (
           (this.position.x + this.size.x >= lines[i].x1 &&
             this.position.x <= lines[i].x1 &&
@@ -322,6 +322,9 @@ function start() {
   let paths = [];
   let rect = myCanvas.getBoundingClientRect();
 
+  // En event listener som aktiveras när man klickar på skärmen. Klickar man två gånger så skapas det en linje från det första klicket till det andra klicket.
+  // Linjerna kan vara vertikala, horizontela och diagonala.
+  // Varje linje kollar ifall det sker en kollision med spelaren. Detta sker i player klassens update() funktion.
   if (buildmode.checked) {
     let continuePath = false;
     document.addEventListener("click", (e) => {
@@ -373,6 +376,7 @@ function start() {
       }
     });
 
+    // Tar emot en lista med all data från linjerna så att det syncas upp med alla spelare.
     socket.on("lineList", (data) => {
       lines = [];
       for (let i = 0; i < data.length; i++) {
@@ -388,7 +392,7 @@ function start() {
       }
     });
 
-
+    // Gör så att om man håller ned shift blir continuePath true. Om continuePath är true så kan man göra nya linjer direkt från den senaste linjen utan att behöva två klick.
     document.addEventListener("keydown", (e) => {
       switch (e.key) {
         case "Shift":
@@ -397,6 +401,8 @@ function start() {
       }
     });
 
+    // Sätter continuePath till false om man släpper shift. Kan användas för att avbryta att sätta ut linjer.
+    // Listan paths är linjerna som bara är visuella för att visa vart den riktiga linjen kommer att hamna.
     document.addEventListener("keyup", (e) => {
       switch (e.key) {
         case "Shift":
@@ -408,6 +414,7 @@ function start() {
     });
   }
 
+  // Gör så att spelarna hamnar på rätt start position. Start positionen tas från databasen och är olika för varje spelare och är den senaste positionen dem hade när de lämnade.
   socket.on("startPosition", ({ x, y }) => {
     player.position.x = x;
     player.position.y = y;
@@ -437,10 +444,8 @@ function start() {
     id = data;
   });
 
-  let aPressed = false;
-  let dPressed = false;
-  let upPressed = false;
-
+  
+  // En chatbubbla som kommer över spelarens huvud. Man kan klicka på Enter för att öppna en skriv ruta för att kommunicera med spelarna.
   function chatBubble(y, x, text) {
     c.beginPath();
     c.lineWidth = "4";
@@ -461,6 +466,12 @@ function start() {
     c.strokeStyle = "black";
     c.stroke();
   }
+  
+  let aPressed = false;
+  let dPressed = false;
+  let upPressed = false;
+
+  // Event listener som lyssnar efter vilket håll du vill gå åt. Ändrar spelarens velocity beroende på vilken knapp du trycker på. Kollar om någon annan knapp redan är nedtryck.
   document.addEventListener("keydown", (e) => {
     switch (e.key) {
       case "a":
@@ -499,6 +510,7 @@ function start() {
     }
   });
 
+  // när man släpper en knapp för att gå så ska velocityn bli noll. Om en annan motsattsa knappen redan är nedtryckt så ändras istället velocityn så att man går åt det hållet.
   document.addEventListener("keyup", (e) => {
     switch (e.key) {
       case "a":
@@ -538,6 +550,7 @@ function start() {
   let players_connected;
   let players = [];
 
+  // Syncar upp alla spelares positions så att alla kan se att man rör på sig.
   socket.on("OnlinePlayerPosX", (data) => {
     for (let i = 0; i < players.length; i++) {
       if (players[i].name == data.name) {
@@ -575,7 +588,7 @@ function start() {
 
  
   
-
+  // Körs så fort man har laddats in i spelet för att synca upp allt rätt.
   function load() {
     for (let i = 0; i < players_connected.length; i++) {
       if (players_connected[i][1] != id) {
@@ -594,6 +607,7 @@ function start() {
     }
   }
 
+  // Uppdaterar "paths" linjerna när man rör på musen om det finns några. Alltså du har klickat ut den första positionen för en linje, annars gör inget.
   document.addEventListener("mousemove", (e) => {
     try {
       paths[0].x2 = e.clientX - rect.left;
@@ -605,9 +619,11 @@ function start() {
 
   let lisa = [];
 
+  // Animate loopen som får spelet att köras. Här anropas funktioner som player.update()
   function animate() {
     requestAnimationFrame(animate);
     c.clearRect(0, 0, innerWidth, innerHeight);
+    // Renderar in linjerna
     for (let i = 0; i < lines.length; i++) {
       lines[i].render();
     }
@@ -617,6 +633,7 @@ function start() {
       // pass
     }
 
+    // Gör så att man kan hoppa så länge man inte är i luften.
     if (
       player.position.y + player.size.y + player.velocity.y > myCanvas.height ||
       player.onPlatform
@@ -629,35 +646,14 @@ function start() {
         player.onPlatform = false;
       }
     }
-    if (
-      player.position.y + player.size.y + player.velocity.y > myCanvas.height ||
-      !player.onPlatform
-    ) {
-      let angleDiff = 0 - player.playerAngle;
-      if (Math.abs(angleDiff) > 0.01) {
-        player.playerAngle += angleDiff * player.rotationSpeed;
-      }
-    }
 
-    if (player.tooSteepLeft) {
-      player.position.x += 2;
-      player.velocity.y = 0;
-      if (aPressed || dPressed) {
-        player.velocity.x = 0;
-      }
-    }
-    if (player.tooSteepRight) {
-      player.position.x -= 2;
-      player.velocity.y = 0;
-      if (aPressed || dPressed) {
-        player.velocity.x = 0;
-      }
-    }
-
+    // Kör update funktionen för alla spelare
     player.update();
     for (let i = 0; i < players.length; i++) {
       players[i].update();
     }
+
+    // Renderar in chatbubblan och texten som en spelare skrev
     if (chatters.length > 0) {
       for (let i = 0; i < chatters.length; i++) {
         for (let j = 0; j < players.length; j++) {
@@ -686,6 +682,9 @@ function start() {
         }
       }
     }
+
+    // Skapar en grid ifall man aktiverar build mode.
+    // Detta är griden som muspekaren kommer att "snapa" till 
     if (buildmode.checked) {
       for (let x = 0; x < myCanvas.width; x += snapDeg) {
         if (x % snapDeg === 0) {
@@ -708,6 +707,8 @@ function start() {
       }
     }
   }
+
+  // Byter muspekaren till en annan muspekare som "snapar" till griden när man rör musen över spelytan
   document.addEventListener("mousemove", function (e) {
     let mouseX = e.clientX - rect.left;
     let mouseY = e.clientY - rect.top;
@@ -727,6 +728,7 @@ function start() {
       cursor.style.visibility = "hidden";
     }
   });
+
 
   socket.emit("loadPlayers");
   socket.on("playerList", (data) => {
